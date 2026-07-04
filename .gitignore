@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# FUSE 임시 잔여물
+.fuse_hidden*
+
+# 환경변수 (비밀번호 포함)
+.env
+*.env.local
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+*.tfvars.local
+
+# 빌드 결과물
+dist/
+build/
+.output/
+
+# 로그
+*.log
