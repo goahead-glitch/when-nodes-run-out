@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: msa_postgres
+    command: ["postgres", "-c", "max_connections=300"]   # 파드 다수 × 풀(8) 합산 대비
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-shoply}
+      POSTGRES_USER: ${POSTGRES_USER:-shoply}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shoply1234}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shoply}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: msa_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── 1차: user ──────────────────────────────────────────────
+  user:
+    build: ./services/user
+    container_name: msa_user
+    env_file: .env
+    ports:
+      - "4005:4005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── gateway ────────────────────────────────────────────────
+  gateway:
+    build: ./gateway
+    container_name: msa_gateway
+    env_file: .env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - user
+
+  # ── frontend ───────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: msa_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+  # ── 2차: product ───────────────────────────────────────────
+  product:
+    build: ./services/product
+    container_name: msa_product
+    env_file: .env
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── 3차: inventory ─────────────────────────────────────────
+  inventory:
+    build: ./services/inventory
+    container_name: msa_inventory
+    env_file: .env
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── 4차: order ─────────────────────────────────────────────
+  order:
+    build: ./services/order
+    container_name: msa_order
+    env_file: .env
+    ports:
+      - "4003:4003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── 5차: payment ───────────────────────────────────────────
+  payment:
+    build: ./services/payment
+    container_name: msa_payment
+    env_file: .env
+    ports:
+      - "4004:4004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
