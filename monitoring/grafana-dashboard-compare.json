@@ -1,0 +1,728 @@
+{
+  "uid": "shoply-compare",
+  "title": "반반 비교 — 온프레 │ EKS (좌우 동시)",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "🐔 반반 비교 — ◀ 온프레미스 (prometheus-onprem)   │   EKS (eks) ▶",
+      "id": 2,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "text",
+      "title": "",
+      "id": 3,
+      "options": {
+        "mode": "markdown",
+        "content": ""
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 52,
+        "w": 2,
+        "x": 11,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "노드수",
+      "id": 4,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(node)(kube_node_info))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Running",
+      "id": 5,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Running\"} == 1))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "⚠️Pending",
+      "id": 6,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1)) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 8,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "노드수",
+      "id": 7,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(node)(kube_node_info))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 13,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Running",
+      "id": 8,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Running\"} == 1))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 17,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "⚠️Pending",
+      "id": 9,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1)) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "📈 노드 수 추이 — 온프레",
+      "id": 10,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(node)(kube_node_info))",
+          "legendFormat": "nodes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "📈 노드 수 추이 — EKS",
+      "id": 11,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(node)(kube_node_info))",
+          "legendFormat": "nodes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 13,
+        "y": 5
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⚠️ Pending 파드 추이 — 온프레",
+      "id": 12,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1)) or vector(0)",
+          "legendFormat": "Pending"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "custom": {
+            "fillOpacity": 25
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 0,
+        "y": 12
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⚠️ Pending 파드 추이 — EKS",
+      "id": 13,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1)) or vector(0)",
+          "legendFormat": "Pending"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "custom": {
+            "fillOpacity": 25
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 13,
+        "y": 12
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "🖥 노드별 CPU (%) — 온프레",
+      "id": 14,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 - (avg by(node)(sum without(mode)(rate(node_cpu_seconds_total{node=~\"worker1|worker2\",mode=~\"idle|steal|iowait\"}[1m]))) * 100)",
+          "legendFormat": "{{node}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 0,
+        "y": 19
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "🖥 노드별 CPU (%) — EKS",
+      "id": 15,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 - (avg by(node)(sum without(mode)(rate(node_cpu_seconds_total{mode=~\"idle|steal|iowait\"}[1m]))) * 100)",
+          "legendFormat": "{{node}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 13,
+        "y": 19
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⚡ RPS (gateway) — 온프레",
+      "id": 16,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(gateway_http_duration_seconds_count{route!~\"/health|/metrics|/livez\"}[1m]))",
+          "legendFormat": "RPS"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 0,
+        "y": 26
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⚡ RPS (gateway) — EKS",
+      "id": 17,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(gateway_http_duration_seconds_count{route!~\"/health|/metrics|/livez\"}[1m]))",
+          "legendFormat": "RPS"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 13,
+        "y": 26
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⏱ P95 (gateway) — 온프레",
+      "id": 18,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by(le)(rate(gateway_http_duration_seconds_bucket{route!~\"/health|/metrics|/livez\"}[1m])))",
+          "legendFormat": "P95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 0,
+        "y": 33
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⏱ P95 (gateway) — EKS",
+      "id": 19,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by(le)(rate(gateway_http_duration_seconds_bucket{route!~\"/health|/metrics|/livez\"}[1m])))",
+          "legendFormat": "P95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 13,
+        "y": 33
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "📦 서비스 CPU% (of limit) — 온프레",
+      "id": 20,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service)(label_replace(rate(container_cpu_usage_seconds_total{namespace=\"shoply\",container!=\"\",container!=\"POD\"}[1m]), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) / sum by(service)(label_replace(max by(namespace,pod,container)(kube_pod_container_resource_limits{namespace=\"shoply\",resource=\"cpu\",container!=\"\"}), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 0,
+        "y": 40
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "📦 서비스 CPU% (of limit) — EKS",
+      "id": 21,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service)(label_replace(rate(container_cpu_usage_seconds_total{namespace=\"shoply\",container!=\"\",container!=\"POD\"}[1m]), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) / sum by(service)(label_replace(max by(namespace,pod,container)(kube_pod_container_resource_limits{namespace=\"shoply\",resource=\"cpu\",container!=\"\"}), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 13,
+        "y": 40
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "📦 서비스 메모리% (of limit) — 온프레",
+      "id": 22,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-onprem"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service)(label_replace(container_memory_working_set_bytes{namespace=\"shoply\",container!=\"\",container!=\"POD\"}, \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) / sum by(service)(label_replace(max by(namespace,pod,container)(kube_pod_container_resource_limits{namespace=\"shoply\",resource=\"memory\",container!=\"\"}), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 0,
+        "y": 47
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "📦 서비스 메모리% (of limit) — EKS",
+      "id": 23,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service)(label_replace(container_memory_working_set_bytes{namespace=\"shoply\",container!=\"\",container!=\"POD\"}, \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) / sum by(service)(label_replace(max by(namespace,pod,container)(kube_pod_container_resource_limits{namespace=\"shoply\",resource=\"memory\",container!=\"\"}), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 13,
+        "y": 47
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    }
+  ]
+}
