@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  namespace: shoply
+  labels:
+    app: product
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4001"
+        prometheus.io/path: "/metrics"
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: experiment-role
+                operator: In
+                values: ["worker1"]
+      containers:
+        - name: product
+          image: ghcr.io/ktk026/shoply-product:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4001
+          envFrom:
+            - configMapRef:
+                name: shoply-config
+            - secretRef:
+                name: shoply-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 4001
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      imagePullSecrets:
+        - name: ghcr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-svc
+  namespace: shoply
+  labels:
+    app: product
+spec:
+  selector:
+    app: product
+  ports:
+    - port: 4001
+      targetPort: 4001
+      protocol: TCP
+  type: ClusterIP

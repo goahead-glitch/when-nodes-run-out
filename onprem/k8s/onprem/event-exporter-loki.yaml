@@ -1,0 +1,87 @@
+# ============================================================
+# kubernetes-event-exporter — k8s 이벤트(Pending 사유·스케일 등)를 Loki로
+#   ⚠️ 적용 전: <MONITORING_IP> 를 모니터링 EC2 사설IP로 교체
+#   worker3(ops)에 격리 배치 (toleration + nodeSelector)
+#   → Grafana에서 {source="kubernetes-events"} 로 조회
+# ============================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: event-exporter, namespace: kube-system }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: event-exporter }
+rules:
+  - apiGroups: [""]
+    resources: [events, pods, nodes, namespaces, services]
+    verbs: [get, list, watch]
+  - apiGroups: ["apps"]
+    resources: [replicasets, deployments, statefulsets, daemonsets]
+    verbs: [get, list, watch]
+  - apiGroups: ["autoscaling"]
+    resources: [horizontalpodautoscalers]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: { name: event-exporter }
+roleRef:
+  {
+    apiGroup: rbac.authorization.k8s.io,
+    kind: ClusterRole,
+    name: event-exporter,
+  }
+subjects:
+  - kind: ServiceAccount
+    name: event-exporter
+    namespace: kube-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: event-exporter-config, namespace: kube-system }
+data:
+  config.yaml: |
+    logLevel: error
+    logFormat: json
+    receivers:
+      - name: loki
+        loki:
+          url: http://10.0.11.8:3100/loki/api/v1/push
+          streamLabels:
+            source: kubernetes-events
+    route:
+      routes:
+        - match:
+            - receiver: loki
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  {
+    name: event-exporter,
+    namespace: kube-system,
+    labels: { app: event-exporter },
+  }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: event-exporter }
+  template:
+    metadata:
+      labels: { app: event-exporter }
+    spec:
+      serviceAccountName: event-exporter
+      nodeSelector: { experiment-role: ops } # worker3
+      tolerations:
+        - { key: dedicated, operator: Equal, value: ops, effect: NoSchedule }
+      containers:
+        - name: event-exporter
+          image: ghcr.io/resmoio/kubernetes-event-exporter:v1.7
+          args: ["-conf=/data/config.yaml"]
+          resources:
+            requests: { cpu: "20m", memory: "64Mi" }
+            limits: { cpu: "100m", memory: "128Mi" }
+          volumeMounts:
+            - { name: config, mountPath: /data }
+      volumes:
+        - { name: config, configMap: { name: event-exporter-config } }

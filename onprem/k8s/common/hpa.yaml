@@ -1,0 +1,180 @@
+# Product Service HPA — 타임세일 트래픽 급증 대응
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: product-hpa
+  namespace: shoply
+
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: product
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  # 반응 속도 — 올릴 땐 60초마다 최대 2개씩(점진적), 내릴 땐 30초 관찰 후 (기본 5분 → 단축)
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods        # 한 번에 늘리는 파드 수 (1개씩 원하면 value: 1)
+          value: 2
+          periodSeconds: 60 # 이 간격마다 위 개수만큼만 (더 자주는 15)
+      # Percent 정책 제거 → %로 폭증(2배 등) 안 함, 딱 2개씩만
+    scaleDown:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
+---
+# Inventory Service HPA — SELECT FOR UPDATE 부하 대응
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: inventory-hpa
+  namespace: shoply
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: inventory
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  # 반응 속도 — 올릴 땐 60초마다 최대 2개씩(점진적), 내릴 땐 30초 관찰 후 (기본 5분 → 단축)
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods        # 한 번에 늘리는 파드 수 (1개씩 원하면 value: 1)
+          value: 2
+          periodSeconds: 60 # 이 간격마다 위 개수만큼만 (더 자주는 15)
+      # Percent 정책 제거 → %로 폭증(2배 등) 안 함, 딱 2개씩만
+    scaleDown:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
+---
+# Order Service HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: order-hpa
+  namespace: shoply
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: order
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  # 반응 속도 — 올릴 땐 60초마다 최대 2개씩(점진적), 내릴 땐 30초 관찰 후 (기본 5분 → 단축)
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods        # 한 번에 늘리는 파드 수 (1개씩 원하면 value: 1)
+          value: 2
+          periodSeconds: 60 # 이 간격마다 위 개수만큼만 (더 자주는 15)
+      # Percent 정책 제거 → %로 폭증(2배 등) 안 함, 딱 2개씩만
+    scaleDown:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
+---
+# Payment Service HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: payment-hpa
+  namespace: shoply
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: payment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  # 반응 속도 — 올릴 땐 60초마다 최대 2개씩(점진적), 내릴 땐 30초 관찰 후 (기본 5분 → 단축)
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods        # 한 번에 늘리는 파드 수 (1개씩 원하면 value: 1)
+          value: 2
+          periodSeconds: 60 # 이 간격마다 위 개수만큼만 (더 자주는 15)
+      # Percent 정책 제거 → %로 폭증(2배 등) 안 함, 딱 2개씩만
+    scaleDown:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
+---
+# Gateway HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gateway-hpa
+  namespace: shoply
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gateway
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  # 반응 속도 — 올릴 땐 60초마다 최대 2개씩(점진적), 내릴 땐 30초 관찰 후 (기본 5분 → 단축)
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods        # 한 번에 늘리는 파드 수 (1개씩 원하면 value: 1)
+          value: 2
+          periodSeconds: 60 # 이 간격마다 위 개수만큼만 (더 자주는 15)
+      # Percent 정책 제거 → %로 폭증(2배 등) 안 함, 딱 2개씩만
+    scaleDown:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
