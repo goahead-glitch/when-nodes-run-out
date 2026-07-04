@@ -1,0 +1,36 @@
+# ============================================================
+# MetalLB 설정 — 온프레 베어메탈 LoadBalancer (KVM 192.168.122.0/24)
+#   목적: LoadBalancer 타입 서비스에 VIP(가상IP)를 부여 → 진짜 온프레처럼.
+#         EKS의 ELB ↔ 온프레 MetalLB 로 개념 대칭.
+#
+#   설치(먼저): kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
+#   그 다음 이 파일 apply.
+#
+#   ⚠️ IP풀(192.168.122.240-250)이 libvirt DHCP 범위와 겹치면 안 됨!
+#      호스트에서 DHCP 범위를 줄여 둔다:
+#        sudo virsh net-edit default
+#        → <range start='192.168.122.2' end='192.168.122.239'/> 로 수정
+#        sudo virsh net-destroy default && sudo virsh net-start default  (VM 재시작 필요)
+#      (이미 .240~ 안 쓰고 있으면 충돌 없음 — virsh net-dhcp-leases default 로 확인)
+# ============================================================
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: onprem-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 192.168.122.240-192.168.122.250   # 이 대역에서 VIP 할당
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: onprem-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - onprem-pool
+  # VIP를 worker3(운영노드)에서만 ARP 광고 → 실험 워커(worker1·2) 안 건드림
+  nodeSelectors:
+    - matchLabels:
+        experiment-role: ops

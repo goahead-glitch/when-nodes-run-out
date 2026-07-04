@@ -1,0 +1,70 @@
+# ============================================================
+# cAdvisor — 파드별(컨테이너별) CPU/메모리 실측
+#   목적: 외부 Prometheus가 NodePort로 앱 /metrics를 긁으면 다중 파드가 섞여
+#         rate() 착시(flapping)가 생김. cAdvisor는 각 노드에서 컨테이너를 직접
+#         측정해 pod/namespace 라벨이 붙은 정확한 메트릭을 준다.
+#
+#   구조(기존 node_exporter와 동일): hostNetwork로 각 워커 VM:8080에 노출
+#         → 호스트 EC2 iptables DNAT(38080→worker1, 38081→worker2)
+#         → 외부 Prometheus 스크랩
+#
+#   배치: taint 없는 worker1·2(실험 노드)에만 자동으로 뜸
+#         worker1·2·3에 배치 (worker3=dedicated=ops taint는 toleration으로 허용 → DNAT 38082)
+#         master(control-plane taint)만 제외 — 외부 스크랩 대상 아님
+# ============================================================
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor
+  namespace: kube-system
+  labels:
+    app: cadvisor
+spec:
+  selector:
+    matchLabels:
+      app: cadvisor
+  template:
+    metadata:
+      labels:
+        app: cadvisor
+    spec:
+      tolerations:
+        - { key: dedicated, operator: Equal, value: ops, effect: NoSchedule }   # worker3(ops)에도 cadvisor 배치 (DNAT 38082)
+      hostNetwork: true                 # 각 워커 VM IP:8080 에 직접 바인드 (DNAT 대상)
+      # cAdvisor는 k8s API를 안 씀 → SA 토큰 마운트 끔.
+      # (안 끄면 토큰이 read-only인 /var/run 밑에 마운트되려다 "read-only file system"으로 죽음)
+      automountServiceAccountToken: false
+      containers:
+        - name: cadvisor
+          image: gcr.io/cadvisor/cadvisor:v0.49.1
+          args:
+            - --housekeeping_interval=10s
+            - --docker_only=false        # containerd 환경
+            - --store_container_labels=false
+            # k8s 라벨만 노출 (pod/namespace/container) — 카디널리티 절약
+            - --whitelisted_container_labels=io.kubernetes.pod.name,io.kubernetes.pod.namespace,io.kubernetes.container.name
+          ports:
+            - name: http
+              containerPort: 8080
+              hostPort: 8080             # VM:8080 = 그 노드 cAdvisor
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "100Mi"
+            limits:
+              cpu: "150m"
+              memory: "200Mi"
+          volumeMounts:
+            - { name: rootfs,     mountPath: /rootfs,            readOnly: true }
+            - { name: var-run,    mountPath: /var/run,           readOnly: true }
+            - { name: sys,        mountPath: /sys,               readOnly: true }
+            - { name: containerd, mountPath: /var/lib/containerd, readOnly: true }
+            - { name: disk,       mountPath: /dev/disk,          readOnly: true }
+          securityContext:
+            privileged: true
+      volumes:
+        - { name: rootfs,     hostPath: { path: / } }
+        - { name: var-run,    hostPath: { path: /var/run } }
+        - { name: sys,        hostPath: { path: /sys } }
+        - { name: containerd, hostPath: { path: /var/lib/containerd } }
+        - { name: disk,       hostPath: { path: /dev/disk } }
