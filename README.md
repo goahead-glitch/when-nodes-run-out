@@ -20,13 +20,15 @@ EKS 쪽 구축·비교는 팀원 담당이라 진행 중입니다.
 
 ## 팀 구성 및 역할 분담
 
-5명, 2개 팀(온프레미스 팀 / EKS 팀) 구성으로, 동일한 앱·동일 기준으로 두 환경을 각각 구축·실험합니다.
+5명, 2개 팀으로 구성해 동일한 앱·동일 기준으로 두 환경을 각각 구축·실험합니다.
 
-| 팀 | 담당 | 비고 |
+| 팀 | 인원 | 담당 |
 |---|---|---|
-| 온프레미스 팀 | **본인**(앱 개발·온프레미스 인프라 구축·서비스 배포·실험) | 이 레포의 범위 |
-| | 팀원D(모니터링), 팀원E(부하 테스트·시나리오·CI/CD) | 일부 작업물(monitoring/k6)은 실제 사용 범위라 공용으로 포함 |
-| EKS 팀 | 팀원A·B(EKS 클러스터 구축) | 이 레포에 미포함(terraform, k8s/eks 오버레이) — EKS도 이 레포의 앱 이미지·매니페스트를 동일하게 사용하므로 동일화 기준만 제공 |
+| **온프레미스 팀** | 본인 | 앱 개발(7개 서비스) · 온프레미스 인프라 구축(KVM·k8s) · 서비스 배포 · **모니터링(Prometheus/Grafana/Loki) 구축·운영** · 실험 설계 및 진행 |
+| | 팀원E | 부하 시나리오 설계 · CI/CD 파이프라인 설계 |
+| **EKS 팀** | 팀원A, 팀원B | EKS 클러스터 구축(Karpenter, terraform) |
+
+이 레포에는 **본인이 실제로 만들고 운영한 부분**(앱, 온프레미스 인프라, 모니터링, k6 실행·postgres·redis·userdata)이 담겨 있습니다. `terraform`과 EKS 클러스터 구축(`k8s/eks`)은 EKS 팀 담당이라 포함하지 않았습니다.
 
 담당 흐름은 아래와 같습니다.
 
@@ -37,10 +39,124 @@ EKS 쪽 구축·비교는 팀원 담당이라 진행 중입니다.
     ↓
 [서비스 배포]    매니페스트(Deploy/HPA/Ingress) → 클러스터 배포 → 검증
     ↓
+[모니터링]      Prometheus/Grafana/Loki 구축 → 대시보드 구성
+    ↓
 [실험]          시나리오 1/2/3 → 한계·MTTR 측정 → 결과 분석
 ```
 
-역할의 상세 배경(왜 이렇게 나뉘었는지, 각자 무엇을 검증했는지)은 [`docs/project-roles.md`](docs/project-roles.md)에 정리했습니다.
+역할의 상세 배경은 [`docs/project-roles.md`](docs/project-roles.md)에 정리했습니다.
+
+## 아키텍처 흐름도
+
+### 사용자 요청 흐름 (트래픽 경로)
+
+```mermaid
+flowchart TB
+  U["사용자 / k6"]
+  EIP["c8i EC2 (EIP 공인IP)<br/>:80 / :443"]
+  DNAT["호스트 iptables DNAT<br/>(-d 호스트IP)"]
+  VIP["MetalLB VIP<br/>(worker3 L2/ARP 광고)"]
+  ING["Nginx Ingress Pod (worker3)"]
+  GW["API Gateway :4000"]
+  SVC["각 마이크로서비스 Pod"]
+  DB[("PostgreSQL / Redis")]
+
+  U -->|"http(s)"| EIP
+  EIP --> DNAT
+  DNAT --> VIP
+  VIP --> ING
+  ING -->|"/api/*"| GW
+  ING -->|"/"| FE["Frontend :80"]
+  GW --> SVC
+  SVC --> DB
+```
+
+KVM VM에 공인 IP가 없어 EC2가 80/443을 받아 MetalLB VIP로 넘기는 **NAT 포워딩 홉이 한 번 더 있습니다**(EKS엔 없음 → 변화율%로 보정). Ingress 이후 라우팅은 `/api/*` → gateway, `/` → frontend로 나뉘고, gateway가 다시 각 서비스로 프록시합니다.
+
+### 쇼핑 플로우 (앱 내부 흐름)
+
+```mermaid
+flowchart LR
+  A["홈 접속"] --> B["로그인<br/>(test1~2000)"]
+  B --> C["상품 조회<br/>(Product, Redis 캐시)"]
+  C --> D["주문 생성<br/>(Order → Inventory 재고 예약)"]
+  D --> E["결제<br/>(Payment, Mock 95%)"]
+  E -->|성공| F["재고 차감 + 주문완료"]
+  E -->|실패| G["재고 예약 해제"]
+```
+
+### 엔지니어 작업 흐름 (구축 → 배포 → 실험)
+
+```mermaid
+flowchart TB
+  subgraph BUILD["① 앱 빌드"]
+    s1["7개 서비스 개발"] --> s2["Dockerfile"] --> s3["git push → GitHub Actions → GHCR"]
+  end
+  subgraph INFRA["② 온프레미스 인프라"]
+    i1["EC2(중첩가상화) 기동"] --> i2["KVM VM 4대 생성<br/>(cloud-init)"]
+    i2 --> i3["kubeadm init + join"] --> i4["Flannel·Ingress·MetalLB"]
+    i4 --> i5["worker3 taint 격리<br/>+ iptables DNAT"]
+  end
+  subgraph DEPLOY["③ 서비스 배포"]
+    d1["매니페스트<br/>(Deploy/HPA/ConfigMap/Secret/Ingress)"] --> d2["kubectl apply"]
+    d2 --> d3["배포 검증<br/>(로그인·주문·결제)"]
+  end
+  subgraph MON["④ 모니터링 구축"]
+    m1["Prometheus/Grafana/Loki<br/>EC2에 Docker Compose"] --> m2["스크랩 타겟 등록<br/>(app/cadvisor/node/kube-state)"]
+    m2 --> m3["Grafana 대시보드 구성"]
+  end
+  subgraph EXP["⑤ 실험"]
+    e1["load-test-prep.sql<br/>재고 리셋"] --> e2["k6 부하 (계단식 ↑)"]
+    e2 --> e3["Pending 발생 = 한계"]
+  end
+  BUILD --> INFRA --> DEPLOY --> MON --> EXP
+```
+
+### 인프라 구축 상세 흐름
+
+```mermaid
+flowchart TB
+  a["중첩가상화 Launch Template"] --> b["c8i.2xlarge 스팟 기동"]
+  b --> c["KVM/libvirt 설치"]
+  c --> d["cloud-init으로 VM 4대 초기화<br/>master/worker1·2·3"]
+  d --> e["각 VM: containerd·kubeadm·kubelet"]
+  e --> f["master: kubeadm init<br/>(ip_forward 선적용)"]
+  f --> g["worker: kubeadm join"]
+  g --> h["Flannel CNI 적용"]
+  h --> i["metrics-server·Nginx Ingress·MetalLB"]
+  i --> j["노드 라벨/taint<br/>experiment-role, dedicated=ops"]
+  j --> k["호스트 iptables DNAT<br/>(80/443 + 메트릭 포트)"]
+```
+
+### 실험 측정 흐름 (한계 RPS 찾기)
+
+```mermaid
+flowchart TB
+  p1["load-test-prep.sql 실행"] --> p2["Grafana 대시보드 띄움"]
+  p2 --> p3["k6: 낮은 VU부터 시작"]
+  p3 --> p4{"계단식으로 VU 증가<br/>매 단계 확인"}
+  p4 -->|"Pending 없음"| p3
+  p4 -->|"Pending 발생"| p5["그 순간 지표 캡처<br/>(Pending 수·P95·실패율)"]
+```
+
+| 한계 신호 | 확인 |
+|---|---|
+| **Pending 발생** ★ | `kubectl get pods --field-selector=status.phase=Pending` |
+| 워커 CPU 90%+ | `kubectl top nodes` |
+| HPA CURRENT=MAX | `kubectl get hpa` |
+
+> 한계의 정의 = Pending Pod이 처음 뜨는 지점입니다.
+
+### 노드 장애 시나리오 흐름 (시나리오 3)
+
+```mermaid
+flowchart TB
+  n["worker1 강제 종료<br/>(Ingress·Gateway·Product·Inventory 다운)"]
+  n --> resch["모든 파드 worker2로 재스케줄"]
+  resch --> pend["worker2(2vCPU/4GB) 자원 부족 → Pending"]
+  pend --> onprem["온프레: 사람이 노드 수동 재시작<br/>(virsh start) — 분 단위"]
+  pend --> eks["EKS(예정): Karpenter 새 노드 자동 추가<br/>— 약 60초"]
+```
 
 ## 환경 동일화 (온프레 ↔ EKS)
 
@@ -80,7 +196,7 @@ EKS 쪽 구축·비교는 팀원 담당이라 진행 중입니다.
 
 ## app — 쇼핑몰 MSA 서비스 (+ PostgreSQL, Redis)
 
-Express(TypeScript) 서비스 7개 + React 19 프론트엔드(TanStack Router, Tailwind v4). 품질 우선순위는 UI 완성도가 아니라 **실험 재현성·API 로직·DB 정합성**입니다.
+Express(TypeScript) 서비스 7개 + React 19 프론트엔드(TanStack Router, Tailwind v4, Vite 6). 품질 우선순위는 UI 완성도가 아니라 **실험 재현성·API 로직·DB 정합성**입니다.
 
 | 서비스 | 포트 | 핵심 역할 |
 |---|:---:|---|
@@ -92,14 +208,33 @@ Express(TypeScript) 서비스 7개 + React 19 프론트엔드(TanStack Router, T
 | user | 4005 | 로그인/인증(bcrypt 해시 + JWT) |
 | frontend | 80 | React 쇼핑몰 UI — 상품/타임세일/주문/결제/로그인/어드민/통계 |
 
+### API 라우팅 규칙 (게이트웨이 경유)
+
+| 요청 경로 | 대상 서비스 |
+|---|---|
+| `GET /` | frontend |
+| `POST /api/auth/login` | user |
+| `GET /api/products`, `GET /api/products/:id` | product |
+| `POST /api/inventory/*` | inventory |
+| `POST /api/orders` | order |
+| `POST /api/payments` | payment |
+
+gateway는 요청 경로를 `/api/{service}` 수준으로 정규화해 Prometheus 라벨 카디널리티를 낮춥니다.
+
 ### 설계 결정
 
+- **재고 동시성 — `SELECT FOR UPDATE`**: k6로 동시 주문을 몰아도 재고가 마이너스로 내려가지 않도록 inventory 서비스에서 행 잠금을 사용합니다.
 - **DB 페일오버 대응**: `pg.Pool`에 `connectionTimeoutMillis: 5000`·`keepAlive: true` + `pool.on('error', ...)` — idle 커넥션이 끊겨도 프로세스가 죽지 않게, Primary DB가 죽는 노드 장애 시나리오에서 크래시 루프에 안 빠지도록 했습니다.
 - **liveness/readiness 분리**: `/livez`(프로세스 생존)와 `/health`(DB까지 확인)를 나눠, DB가 죽었을 때 전체 파드가 재시작 루프에 빠지는 걸 막았습니다.
+- **Mock 결제 95% 성공률**: 실제 PG 연동 없이 결제 실패(재고 롤백 포함) 시나리오를 재현하기 위한 선택입니다.
 - **Redis 캐시 TTL 차등**: 목록 60초/상세 30초 — 상세는 재고 반영이 더 즉각적이어야 해서 짧게 뒀습니다. 주 사용처는 product 서비스(`allkeys-lru` 정책, `--save ""`로 영속성 끔 — 캐시는 유실돼도 DB에서 재생성되므로).
-- **PostgreSQL**: 16, 테이블마다 소유 서비스가 있는 MSA 구조(`users`→user, `products`→product, `inventory`→inventory, `orders`/`order_items`→order, `payments`→payment). `max_connections=300`으로 파드 다수 × 커넥션풀 합산에 대응.
+- **fetch 타임아웃**(order → inventory): 노드 장애로 inventory가 응답하지 않을 때 order가 무한 대기하지 않도록 `AbortSignal.timeout(5000)`을 적용했습니다.
 
-두 DB/캐시 모두 별도 EC2에서 Docker Compose로 운영하며 온프레/EKS 양쪽이 공유하는 통제변수입니다. 이미지는 GitHub Actions(`ci.yml`/`cd.yml`/`cd-otel.yml`)로 빌드해 GHCR에 푸시합니다.
+### 데이터 계층
+
+PostgreSQL 16은 테이블마다 소유 서비스가 있는 MSA 구조입니다(`users`→user, `products`→product, `inventory`→inventory, `orders`/`order_items`→order, `payments`→payment). `max_connections=300`으로 파드 다수 × 커넥션풀 합산에 대응합니다. Redis 7은 순수 캐시 용도(`maxmemory 256mb`, `allkeys-lru`)로 주로 product 서비스가 사용합니다. 둘 다 별도 EC2에서 Docker Compose로 운영하며 온프레/EKS 양쪽이 공유하는 통제변수입니다.
+
+이미지는 GitHub Actions(`ci.yml`은 develop/main PR 검증, `cd.yml`은 push 시 GHCR 빌드+푸시, `cd-otel.yml`은 OTel 계측 이미지를 `:otel` 태그로 별도 빌드)로 관리합니다.
 
 ## onprem — 온프레미스 인프라
 
@@ -107,34 +242,50 @@ Express(TypeScript) 서비스 7개 + React 19 프론트엔드(TanStack Router, T
 
 AWS EC2 위 **KVM 가상머신 4대**(master + worker1/2 실험용 + worker3 운영격리)로 물리 온프레미스 k8s를 재현했습니다.
 
+### EC2 구성
+
+| EC2 | 역할 |
+|---|---|
+| c8i.2xlarge(스팟) | k8s 호스트 — KVM VM 4대 + 호스트 Nginx/iptables |
+| PostgreSQL EC2 | DB(Docker, PostgreSQL 16) |
+| Redis EC2 | 캐시(Docker, Redis 7) |
+| 모니터링 EC2 | Prometheus + Grafana + Loki(Docker Compose) |
+
 ### 구축 과정
 
-c8i-flex.2xlarge 스팟 인스턴스는 중첩가상화가 기본 비활성이라, 처음엔 LXD 컨테이너로 구성했다가 launch template를 만들어 중첩가상화를 명시적으로 켜서 KVM을 띄웠습니다. cloud-init으로 VM을 초기화하고 containerd·kubeadm/kubelet/kubectl을 직접 설치(자동화 없이), `kubeadm init` + worker `join`, Flannel v0.26.7, Nginx Ingress(helm) 순으로 구성했습니다.
+c8i-flex.2xlarge 스팟 인스턴스는 중첩가상화가 기본 비활성이라, 처음엔 LXD 컨테이너로 구성했다가 launch template를 만들어 중첩가상화를 명시적으로 켜서 KVM을 띄웠습니다. cloud-init으로 VM을 초기화하고 containerd·kubeadm/kubelet/kubectl을 직접 설치(자동화 없이), `kubeadm init` + worker `join`, Flannel v0.26.7, Nginx Ingress(helm) 순으로 구성했습니다. 노드는 `experiment-role` 라벨로 초기 배치를 고정하고(worker1: gateway/product/inventory, worker2: frontend/order/payment/user), worker3에는 `dedicated=ops:NoSchedule` taint를 줘서 모니터링·ingress 같은 운영성 파드를 실험 워커에서 분리했습니다(측정 신뢰도 확보).
 
 ![kubectl get node 결과](docs/images/onprem-kvm-nodes.png)
-> 4개 노드(master + worker1/2/3) 모두 Ready.
+> 4개 노드(master + worker1/2/3) 모두 Ready, Ubuntu 24.04.4 + containerd 2.2.4.
 
 ### 네트워크
 
 KVM VM은 공인 IP가 없어 호스트 EC2의 iptables DNAT로 외부 트래픽을 포워딩합니다.
 
 ![iptables DNAT 규칙](docs/images/onprem-iptables-dnat.png)
-> 80/443은 MetalLB VIP로, 앱/노드 메트릭 포트는 각 VM으로 포워딩.
+> 80/443은 MetalLB VIP로, 앱/노드 메트릭 포트(30400~30404, 39101~39103, 38080/38081)는 각 VM으로 포워딩됩니다.
 
-### 배포와 트러블슈팅
+### 서비스 배포 — k8s 매니페스트
 
-k8s 매니페스트는 Deployment/Service/HPA/ConfigMap/Secret/Ingress로 구성했고, **ConfigMap에 DB/Redis 사설 IP를 넣어야 파드가 DB에 붙는다**는 걸 재구축을 반복하며 깨달았습니다. 대표적으로 겪은 문제:
+| 리소스 | 역할 |
+|---|---|
+| Deployment | 파드 정의(이미지, 리소스, 프로브, affinity) |
+| Service(ClusterIP/NodePort) | 내부 통신 / 메트릭 scrape 노출 |
+| HPA | 자동 확장(5개: gateway/product/inventory/order/payment) |
+| ConfigMap | DB/Redis 호스트 등 환경값 — **재구축을 반복하며 여기에 사설 IP를 안 넣으면 파드가 DB에 못 붙는다는 걸 깨달음** |
+| Secret | DB 비번, JWT, GHCR 인증 |
+| Ingress | Nginx 경로 라우팅(`/api`→gateway, `/`→frontend) |
 
-- **kube-apiserver CrashLoopBackOff**: 재부팅 후 오염된 방화벽 룰이 loopback 트래픽까지 DROP해서 apiserver가 etcd에 못 붙음. `connection refused`가 아니라 `i/o timeout`이 뜨는 패턴으로 원인을 역추적.
-- **frontend CrashLoopBackOff**: nginx가 존재하지 않는 Service 이름(`gateway` vs 실제 `gateway-svc`)을 찾다 죽음 → 같은 selector의 alias Service 추가로 해결.
-- **flannel CrashLoopBackOff**: `br_netfilter` 모듈 미로드 — 재부팅마다 반복되는 문제라 결국 모듈 자동로드를 영구화.
-
-20건의 트러블슈팅 전체 기록과 스팟 호스트 AMI 백업/복원 절차(재부팅마다 반복되는 삽질을 "무삽질"로 만든 영구화 방법 포함)는 `onprem` 브랜치의 `TROUBLESHOOTING.md`/`BACKUP-RESTORE.md`에 있습니다.
+HPA는 처음엔 replicas 2개 + max를 낮게 제한해뒀는데, 부하를 줘도 파드가 잘 안 늘어서 replicas 1개 시작 + max를 넉넉히 풀어(현재는 min 2/max 10/target 70%로 조정) 노드 한계까지 파드가 늘어나는 걸 관찰할 수 있게 했습니다.
 
 ### HPA 반응 확인
 
 ![부하 시 HPA 상태](docs/images/onprem-hpa-under-load.png)
 > gateway는 CPU 66%로 replicas 10(max)까지, product는 61%로 7개까지 확장. 트래픽이 적은 서비스는 min(2)에 머무름.
+
+### 백업/복원
+
+스팟 인스턴스가 회수되는 상황에 대비해 호스트 EC2를 AMI로 백업하고, KVM 디스크(qcow2)도 함께 보존되도록 구성했습니다. VM 내부 IP는 MAC 고정이라 복원 후에도 안 바뀌어 클러스터 인증서가 깨지지 않습니다.
 
 ## monitoring — Prometheus / Grafana / Loki
 
@@ -183,9 +334,4 @@ Tempo(OpenTelemetry 트레이싱)도 붙여서 작동 확인은 했습니다 —
 | 3 — 노드 장애 | 500 RPS 유지 중 5분 후 worker1 강제 종료 | worker1에 몰린 서비스가 전부 worker2로 재스케줄 → 온프레는 Pending·수동 복구(수 분), EKS는 Karpenter 자동 복구(30~60초) |
 | 4 (선택) — DB 페일오버 | Primary DB 강제 종료 | 온프레 Replica 수동 승격 vs RDS Multi-AZ 자동 — 실행 여부 미정 |
 
-시나리오 2·3 모두 "급증/장애 직후"가 아니라 **"유지 구간"**에서 차이가 드러나도록 설계했습니다 — HPA가 파드를 늘리는 데도, Karpenter가 노드를 추가하는 데도 시간이 걸리기 때문에 짧은 스파이크는 반응 전에 끝나버립니다. 진행 순서, 결과 기록 템플릿, 지금까지의 진행 상황(위 "확인한 핵심 결과" 포함)은 [`docs/experiments.md`](docs/experiments.md)에 정리했습니다.
-
-## 더 자세히 보려면
-
-- 컴포넌트별 상세(설계 결정 전체·트러블슈팅 20건·백업복원 절차·실행법)는 `app`/`onprem`/`공용` 브랜치의 README.md
-- 프로젝트를 짧게 훑어보려면 `main` 브랜치의 README.md
+시나리오 2·3 모두 "급증/장애 직후"가 아니라 **"유지 구간"**에서 차이가 드러나도록 설계했습니다 — HPA가 파드를 늘리는 데도, Karpenter가 노드를 추가하는 데도 시간이 걸리기 때문에 짧은 스파이크는 반응 전에 끝나버립니다. 진행 순서, 결과 기록 템플릿, 지금까지의 진행 상황은 [`docs/experiments.md`](docs/experiments.md)에 정리했습니다.
