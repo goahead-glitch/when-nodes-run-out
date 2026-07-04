@@ -29,14 +29,18 @@
 ![Prometheus 타겟 상태](images/prometheus-targets.png)
 > app-onprem 5개, cadvisor-onprem 2개, kube-state-onprem 1개 타겟이 모두 UP인 상태.
 
-## 트레이싱 연동 (Tempo)
+## 로그 조회 (Loki)
 
-`app/` 브랜치 서비스들은 각각 `tracing.js`로 OpenTelemetry가 계측되어 있고, OTLP(gRPC `:4317`/HTTP `:4318`)로 Tempo에 트레이스를 보냅니다. Tempo는 여기서 **서비스그래프/스팬 메트릭**을 뽑아 Prometheus로 remote-write하고(`metrics_generator`), Grafana의 Tempo 데이터소스(`grafana-datasources.yml`)에서:
-- `nodeGraph` — 서비스 호출맵
-- `tracesToLogsV2` → Loki로 점프
-- `tracesToMetrics` → Prometheus로 점프
+클러스터의 앱 로그와 k8s 이벤트(Pending 사유 등)를 Grafana Explore에서 함께 조회할 수 있습니다.
 
-가 자동 연결되도록 프로비저닝해뒀습니다.
+![Grafana에서 앱 로그 + k8s 이벤트(Pending) 조회](images/loki-logs.png)
+> 위쪽은 shoply 앱 로그(nginx 액세스 로그), 아래쪽은 k8s 이벤트(gateway/product HPA 스케일 이벤트 등)를 같은 화면에서 시간순으로 확인.
+
+## 트레이싱 연동 (Tempo) — 탐색적 시도
+
+`app/` 브랜치 서비스들에 `tracing.js`로 OpenTelemetry를 붙여 OTLP(gRPC `:4317`/HTTP `:4318`)로 Tempo에 트레이스를 보내는 것까지는 구성해뒀습니다(Tempo가 서비스그래프/스팬 메트릭을 뽑아 Prometheus로 remote-write, Grafana Tempo 데이터소스에 `nodeGraph`/`tracesToLogsV2`/`tracesToMetrics` 연동 프로비저닝 완료).
+
+다만 이건 "일단 붙여보고 쓸만한지 확인해보자"는 탐색 차원의 시도였고, 실제 비교 실험(시나리오 1/2/3)에서는 사용하지 않았습니다 — 온프레/EKS 비교에 필요한 지표는 Prometheus/Grafana 메트릭만으로 충분히 관찰 가능했기 때문입니다.
 
 ## 로컬/EC2 실행
 
