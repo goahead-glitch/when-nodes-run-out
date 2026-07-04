@@ -1,0 +1,15 @@
+services:
+  k6:
+    image: grafana/k6
+    # Prometheus remote write로 메트릭 전송
+    command: run --out experimental-prometheus-rw /scripts/scenario.js
+    volumes:
+      - ./scripts:/scripts
+    environment:
+      # 타겟 URL — 실행 시 주입
+      - BASE_URL=${BASE_URL:-http://localhost}
+      # Prometheus remote write URL (모니터링 서버 사설IP:9090)
+      - K6_PROMETHEUS_RW_SERVER_URL=${PROMETHEUS_RW_URL:-http://localhost:9090/api/v1/write}
+      # Prometheus 메트릭에 환경 레이블 추가 (onprem / eks 구분)
+      - K6_PROMETHEUS_RW_TREND_STATS=p(50),p(90),p(95),p(99)
+    network_mode: host

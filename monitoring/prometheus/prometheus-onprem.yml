@@ -1,0 +1,70 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+# k6 메트릭은 remote write 수신 (k6 --out experimental-prometheus-rw)
+# → Prometheus 기동 시 --web.enable-remote-write-receiver 플래그 필요, 스크레이프 잡 없음
+
+scrape_configs:
+  # ── 앱 메트릭 (gateway · product · inventory · order · payment) ──
+  # 타겟마다 service 라벨 부여 → 쿼리에서 IP 대신 service="order" 식으로 사용
+  # 재구축 시 호스트IP(10.0.11.78) 한 곳만 바꾸면 됨
+  - job_name: "app-onprem"
+    static_configs:
+      - targets: ["10.0.11.78:30400"]
+        labels: { service: gateway }
+      - targets: ["10.0.11.78:30401"]
+        labels: { service: product }
+      - targets: ["10.0.11.78:30402"]
+        labels: { service: inventory }
+      - targets: ["10.0.11.78:30403"]
+        labels: { service: order }
+      - targets: ["10.0.11.78:30404"]
+        labels: { service: payment }
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+
+  # ── cAdvisor (파드별 CPU·메모리) ─────────────────────────────
+  # 호스트 EC2 DNAT: 38080→worker1:8080, 38081→worker2:8080
+  # standalone cAdvisor: container_label_io_kubernetes_pod_* → namespace/pod/container 변환
+  - job_name: "cadvisor-onprem"
+    static_configs:
+      - targets: ["10.0.11.78:38080"]
+        labels: { node: worker1 }
+      - targets: ["10.0.11.78:38081"]
+        labels: { node: worker2 }
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+    metric_relabel_configs:
+      - source_labels: [container_label_io_kubernetes_pod_namespace]
+        target_label: namespace
+      - source_labels: [container_label_io_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [container_label_io_kubernetes_container_name]
+        target_label: container
+
+  # ── Node Exporter (EC2 호스트 + KVM 워커 3대) ────────────────
+  # 대시보드는 node="worker1" 로 쿼리 → 호스트IP 바꿔도 대시보드 수정 불필요
+  - job_name: "node-onprem"
+    static_configs:
+      - targets: ["10.0.11.78:9100"]
+        labels: { node: ec2-host }
+      - targets: ["10.0.11.78:39101"]
+        labels: { node: worker1 }
+      - targets: ["10.0.11.78:39102"]
+        labels: { node: worker2 }
+      - targets: ["10.0.11.78:39103"]
+        labels: { node: worker3 }
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+
+  # ── kube-state-metrics (파드 상태·HPA·노드 정보) ─────────────
+  - job_name: "kube-state-onprem"
+    static_configs:
+      - targets: ["10.0.11.78:30800"]
+    relabel_configs:
+      - target_label: env
+        replacement: onprem

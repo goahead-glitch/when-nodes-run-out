@@ -1,0 +1,37 @@
+# Grafana 데이터소스 자동 등록 (Prometheus 온프레/EKS + Loki + Tempo)
+apiVersion: 1
+
+datasources:
+  - name: Prometheus # 온프레 (env="onprem")
+    type: prometheus
+    uid: prometheus-onprem
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+
+  - name: Prometheus-EKS # EKS (env="eks")
+    type: prometheus
+    uid: prometheus-eks
+    access: proxy
+    url: http://prometheus-eks:9091
+
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+
+  - name: Tempo # 트레이스 + 서비스 호출맵(Node graph)
+    type: tempo
+    uid: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      nodeGraph:
+        enabled: true # Node graph(서비스 호출맵) 켜기
+      serviceMap:
+        datasourceUid: prometheus-onprem # service-graph 메트릭이 저장된 곳
+      tracesToLogsV2: # 트레이스 → 로그(Loki) 점프
+        datasourceUid: loki
+      tracesToMetrics: # 트레이스 → 메트릭 점프
+        datasourceUid: prometheus-onprem
