@@ -1,0 +1,9 @@
+terraform apply -target="aws_iam_group.infra_group" `
+                -target="aws_iam_group.k8s_group" `
+                -target="aws_iam_group.cicd_group" `
+                -target="aws_iam_group_policy.infra_policy" `
+                -target="aws_iam_group_policy.k8s_policy" `
+                -target="aws_iam_group_policy.cicd_policy" `
+                -target="aws_iam_user_group_membership.infra_membership" `
+                -target="aws_iam_user_group_membership.k8s_membership" `
+                -target="aws_iam_user_group_membership.cicd_membership"

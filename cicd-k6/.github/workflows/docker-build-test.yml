@@ -1,0 +1,95 @@
+name: Docker Build and Push
+
+# dev/cicd 브랜치에 코드가 올라오면 Docker 이미지를 빌드한다.
+# PR은 dev로 들어올 때 빌드 검증만 수행하고, 실제 GHCR Push는 하지 않는다.
+on:
+  push:
+    branches:
+      - dev
+      - cicd
+  pull_request:
+    branches:
+      - dev
+
+permissions:
+  # checkout에 필요한 최소 권한
+  contents: read
+
+  # GHCR(GitHub Container Registry)에 이미지를 Push하기 위한 권한
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    strategy:
+      # 한 서비스 빌드가 실패해도 나머지 서비스 빌드는 계속 확인한다.
+      fail-fast: false
+
+      # Shoply MSA 서비스별 Docker 이미지 빌드 대상 목록.
+      # path는 각 서비스의 Dockerfile이 있는 디렉토리를 의미한다.
+      matrix:
+        service:
+          - name: frontend
+            image: shoply-frontend
+            path: ./frontend
+          - name: gateway
+            image: shoply-gateway
+            path: ./gateway
+          - name: user
+            image: shoply-user
+            path: ./services/user
+          - name: product
+            image: shoply-product
+            path: ./services/product
+          - name: inventory
+            image: shoply-inventory
+            path: ./services/inventory
+          - name: order
+            image: shoply-order
+            path: ./services/order
+          - name: payment
+            image: shoply-payment
+            path: ./services/payment
+
+    steps:
+      # GitHub Actions runner에 현재 브랜치 코드를 내려받는다.
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # runner에서 Docker와 Docker Compose를 사용할 수 있는지 확인한다.
+      - name: Check Docker version
+        run: |
+          docker --version
+          docker compose version
+
+      # matrix에 정의된 서비스별 Dockerfile 경로에서 이미지를 빌드한다.
+      # 여기서는 검증용 로컬 태그인 service-name:test로 먼저 만든다.
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ matrix.service.image }}:test ${{ matrix.service.path }}
+
+      # gateway는 외부 요청의 입구라서 빌드 후 /health 응답까지 확인한다.
+      # 다른 서비스들은 DB/Redis 의존성이 있어 여기서는 이미지 빌드까지만 검증한다.
+      - name: Test gateway health check
+        if: matrix.service.name == 'gateway'
+        run: |
+          docker run -d --name gateway-test -p 4000:4000 ${{ matrix.service.image }}:test
+          sleep 5
+          docker ps
+          curl -f http://localhost:4000/health
+
+      # push 이벤트일 때만 GHCR에 로그인한다.
+      # PR에서는 외부 기여 코드가 registry에 이미지를 올리지 못하게 Push를 막는다.
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        run: |
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ktk026 --password-stdin
+
+      # 빌드된 이미지를 GHCR 경로로 태그한 뒤 dev 태그로 Push한다.
+      # 예: ghcr.io/ktk026/shoply-gateway:dev
+      - name: Tag and push image to GHCR
+        if: github.event_name == 'push'
+        run: |
+          docker tag ${{ matrix.service.image }}:test ghcr.io/ktk026/${{ matrix.service.image }}:dev
+          docker push ghcr.io/ktk026/${{ matrix.service.image }}:dev

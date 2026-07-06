@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: shoply
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+      - name: payment-service
+        image: ghcr.io/incheon-soda/shoply-payment:otel
+        ports:
+        - containerPort: 4004
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        envFrom:
+        - configMapRef:
+            name: db-config
+        - secretRef:
+            name: db-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: shoply
+spec:
+  selector:
+    app: payment-service
+  ports:
+  - port: 4004
+    targetPort: 4004
