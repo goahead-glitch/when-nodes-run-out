@@ -16,7 +16,9 @@
 
 ![온프레미스 한계 도달 — Pending 파드 발생](docs/images/limit-found-pending-pods.png)
 
-EKS 쪽 구축·비교는 팀원 담당이라 진행 중입니다.
+EKS와의 직접 비교도 완료했습니다. Grafana에 양쪽 Prometheus를 동시에 붙인 반반 비교 대시보드로 300 VU까지 부하를 걸어본 결과, 온프레는 노드 4개 고정 상태에서 Pending이 6~7개까지 쌓여 수 분간 유지된 반면, EKS는 Karpenter가 노드를 3→8개로 늘렸음에도 Pending이 최대 12개까지 두 차례 스파이크친 뒤에야 해소됐습니다 — 자동확장이 있어도 노드 프로비저닝 시간(60~90초) 동안은 온프레와 마찬가지로 Pending이 쌓인다는 걸 확인했습니다. 상세 수치와 부하 테스트 영상은 [`docs/experiments.md`](docs/experiments.md)에 정리했습니다.
+
+![온프레미스 vs EKS 비교 — 부하 유지 구간](docs/images/onprem-eks-comparison-spike.png)
 
 ## 팀 구성 및 역할 분담
 
@@ -235,6 +237,12 @@ gateway는 요청 경로를 `/api/{service}` 수준으로 정규화해 Prometheu
 PostgreSQL 16은 테이블마다 소유 서비스가 있는 MSA 구조입니다(`users`→user, `products`→product, `inventory`→inventory, `orders`/`order_items`→order, `payments`→payment). `max_connections=300`으로 파드 다수 × 커넥션풀 합산에 대응합니다. Redis 7은 순수 캐시 용도(`maxmemory 256mb`, `allkeys-lru`)로 주로 product 서비스가 사용합니다. 둘 다 별도 EC2에서 Docker Compose로 운영하며 온프레/EKS 양쪽이 공유하는 통제변수입니다.
 
 이미지는 GitHub Actions(`ci.yml`은 develop/main PR 검증, `cd.yml`은 push 시 GHCR 빌드+푸시, `cd-otel.yml`은 OTel 계측 이미지를 `:otel` 태그로 별도 빌드)로 관리합니다.
+
+![CI/CD 파이프라인](docs/images/cicd-pipeline.png)
+
+앱에는 실시간 주문 현황을 3초마다 갱신해 보여주는 관리자용 대시보드 화면도 있습니다(부하 테스트 중 주문 성공/실패를 실시간으로 관찰하는 용도).
+
+![실시간 주문 현황](docs/images/app-order-dashboard.png)
 
 ## onprem — 온프레미스 인프라
 
