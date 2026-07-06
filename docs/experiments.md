@@ -19,14 +19,14 @@
 | 이미지 | GHCR 동일 SHA |
 | 부하 도구 | k6(동일 스크립트) — [`../k6/README.md`](../k6/README.md) |
 | 리소스 | request 100m/limit 500m, HPA target 70%(min2/max10) |
-| 데이터 | 상품 20~456종, 계정 test1~2000(`Test1234!`) |
+| 데이터 | 상품 20\~456종, 계정 test1\~2000(`Test1234!`) |
 | 실험 전 | `load-test-prep.sql`로 DB 리셋(재고 사전 세팅으로 실험 오염 방지) |
 
 부하 방식은 하이브리드입니다: request를 작게(100m) 둬서 HPA가 민감하게 발동하게 하고, k6 RPS를 크게 줘서 실제 CPU를 올립니다.
 
 ## 시나리오 1 — 안정 (베이스라인)
 
-200 RPS를 10~20분 유지. 목적은 "평상시엔 온프레도 충분하다"는 신뢰 형성입니다. 측정: TPS 안정 / Error율 0% / Pending 0 / 워커 CPU 30~50%.
+200 RPS를 10\~20분 유지. 목적은 "평상시엔 온프레도 충분하다"는 신뢰 형성입니다. 측정: TPS 안정 / Error율 0% / Pending 0 / 워커 CPU 30\~50%.
 
 ## 시나리오 2 — 스파이크 (순간 급증 + 유지) ★핵심
 
@@ -92,7 +92,7 @@
 
 - **온프레미스 vs EKS 비교 완료**: Grafana에 양쪽 Prometheus(`prometheus-onprem`/`eks`)를 동시에 붙인 반반 비교 대시보드로 동일 부하(최대 300 VU)를 걸어 직접 비교했습니다.
   - 부하 투입 전(베이스라인)에는 온프레 4노드/EKS 8노드 모두 Pending 0으로 안정적이었습니다.
-  - 부하가 유지되자 온프레는 노드가 4개로 고정된 채 **Pending이 6~7개까지 쌓여 수 분간 유지**됐고, EKS는 Karpenter가 노드를 3→8개로 늘렸지만 **Pending도 최대 12개까지 두 차례 스파이크친 뒤에야 해소**됐습니다 — Karpenter가 있어도 노드 프로비저닝(60~90초)이 끝날 때까지는 온프레와 마찬가지로 Pending이 쌓인다는 걸 확인했습니다.
+  - 부하가 유지되자 온프레는 노드가 4개로 고정된 채 **Pending이 6\~7개까지 쌓여 수 분간 유지**됐고, EKS는 Karpenter가 노드를 3→8개로 늘렸지만 **Pending도 최대 12개까지 두 차례 스파이크친 뒤에야 해소**됐습니다 — Karpenter가 있어도 노드 프로비저닝(60\~90초)이 끝날 때까지는 온프레와 마찬가지로 Pending이 쌓인다는 걸 확인했습니다.
   - 300 VU 부하 테스트 전 과정(k6 결과 패널 + 인프라 메트릭 패널)은 영상으로 남겼습니다: [`videos/onprem-vs-eks-300vu-load-test.mp4`](videos/onprem-vs-eks-300vu-load-test.mp4)
 
   ![온프레미스 vs EKS 비교 — 베이스라인](images/onprem-eks-comparison-baseline.png)
