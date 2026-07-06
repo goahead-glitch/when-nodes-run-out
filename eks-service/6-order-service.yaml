@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: shoply
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+      - name: order-service
+        image: ghcr.io/incheon-soda/shoply-order:otel
+        ports:
+        - containerPort: 4003
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        envFrom:
+        - configMapRef:
+            name: db-config
+        - secretRef:
+            name: db-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: shoply
+spec:
+  selector:
+    app: order-service
+  ports:
+  - port: 4003
+    targetPort: 4003

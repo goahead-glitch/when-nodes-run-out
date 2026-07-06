@@ -1,0 +1,22 @@
+nodeExporter:
+  enabled: true
+
+
+kube-state-metrics: 
+  enabled: true
+  nodeSelector:
+    role: ops
+  tolerations:
+    - key: "role"
+      operator: "Equal"
+      value: "ops"
+      effect: "NoSchedule"
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 30800
+
+
+grafana: { enabled: false }
+prometheus: { enabled: false }
+alertmanager: { enabled: false }

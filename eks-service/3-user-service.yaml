@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: shoply
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      containers:
+      - name: user
+        image: ghcr.io/incheon-soda/shoply-user:otel
+        ports:
+        - containerPort: 4005
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        env:
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: password
+        envFrom:
+        - configMapRef:
+            name: db-config
+        - secretRef:
+            name: db-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+  namespace: shoply
+spec:
+  selector:
+    app: user
+  ports:
+  - port: 4005
+    targetPort: 4005
