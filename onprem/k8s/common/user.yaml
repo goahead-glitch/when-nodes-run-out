@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: shoply
+  labels:
+    app: user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: experiment-role
+                operator: In
+                values: ["worker2"]
+      containers:
+        - name: user
+          image: ghcr.io/ktk026/shoply-user:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4005
+          envFrom:
+            - configMapRef:
+                name: shoply-config
+            - secretRef:
+                name: shoply-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 4005
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4005
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      imagePullSecrets:
+        - name: ghcr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-svc
+  namespace: shoply
+  labels:
+    app: user
+spec:
+  selector:
+    app: user
+  ports:
+    - port: 4005
+      targetPort: 4005
+      protocol: TCP
+  type: ClusterIP

@@ -1,0 +1,229 @@
+{
+  "uid": "shoply-onprem",
+  "title": "온프레미스 — 노드 자동확장 실험",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+
+    { "type": "row", "id": 1, "title": "🎛 부하 입력 — k6", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+
+    {
+      "type": "timeseries", "id": 2, "title": "동시접속 VU",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "k6_vus", "legendFormat": "VU" }],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 1 }
+    },
+    {
+      "type": "timeseries", "id": 3, "title": "전체 RPS (gateway)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "sum(rate(gateway_http_duration_seconds_count{route!~\"/health|/metrics|/livez\"}[1m]))", "legendFormat": "RPS" }],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 1 }
+    },
+    {
+      "type": "timeseries", "id": 4, "title": "k6 실패율",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "sum(rate(k6_http_reqs_total{expected_response=\"false\"}[1m])) / clamp_min(sum(rate(k6_http_reqs_total[1m])), 1) * 100", "legendFormat": "실패율 %" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "color": { "mode": "fixed", "fixedColor": "red" } }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 1 }
+    },
+
+    { "type": "row", "id": 10, "title": "🎯 한눈 상태", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 } },
+
+    {
+      "type": "stat", "id": 11, "title": "노드 수",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "count(group by(node)(kube_node_info))" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 9 }
+    },
+    {
+      "type": "stat", "id": 12, "title": "Running 파드 (shoply)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Running\"} == 1))" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 9 }
+    },
+    {
+      "type": "stat", "id": 13, "title": "⚠️ Pending 파드",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1)) or vector(0)" }],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 9 }
+    },
+    {
+      "type": "stat", "id": 14, "title": "P95 (gateway)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "histogram_quantile(0.95, sum by(le)(rate(gateway_http_duration_seconds_bucket{route!~\"/health|/metrics|/livez\"}[1m])))" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.5 }, { "color": "red", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 9 }
+    },
+
+    { "type": "row", "id": 20, "title": "📈 스케일 거동 — 실험 핵심", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 } },
+
+    {
+      "type": "timeseries", "id": 21, "title": "노드 수 추이",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "count(group by(node)(kube_node_info))", "legendFormat": "nodes" }],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 }
+    },
+    {
+      "type": "timeseries", "id": 22, "title": "⚠️ Pending 파드 추이 (전체)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1)) or vector(0)", "legendFormat": "Pending" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "custom": { "fillOpacity": 25 } }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 }
+    },
+    {
+      "type": "timeseries", "id": 23, "title": "⚠️ 서비스별 Pending 파드",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "sum by(service)(label_replace(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1, \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\"))", "legendFormat": "{{service}}" }],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 15 } }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 }
+    },
+    {
+      "type": "timeseries", "id": 24, "title": "🖥 노드별 CPU (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{ "refId": "A", "expr": "100 - (avg by(node)(sum without(mode)(rate(node_cpu_seconds_total{node=~\"worker1|worker2|worker3\",mode=~\"idle|steal|iowait\"}[1m]))) * 100)", "legendFormat": "{{node}}" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 }
+    },
+
+    { "type": "row", "id": 30, "title": "⚡ 성능 & HPA", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 } },
+
+    {
+      "type": "timeseries", "id": 31, "title": "RPS (order · payment)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(order_service_http_duration_seconds_count{route!~\"/health|/metrics|/livez\"}[1m]))", "legendFormat": "order" },
+        { "refId": "B", "expr": "sum(rate(payment_service_http_duration_seconds_count{route!~\"/health|/metrics|/livez\"}[1m]))", "legendFormat": "payment" }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 31 }
+    },
+    {
+      "type": "timeseries", "id": 32, "title": "P95 (order · payment)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by(le)(rate(order_service_http_duration_seconds_bucket{route!~\"/health|/metrics|/livez\"}[1m])))", "legendFormat": "order P95" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by(le)(rate(payment_service_http_duration_seconds_bucket{route!~\"/health|/metrics|/livez\"}[1m])))", "legendFormat": "payment P95" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 31 }
+    },
+    {
+      "type": "table", "id": 33, "title": "HPA 현재/최대 replica",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [
+        { "refId": "A", "expr": "max by(horizontalpodautoscaler)(kube_horizontalpodautoscaler_status_current_replicas{namespace=\"shoply\"})", "legendFormat": "{{horizontalpodautoscaler}}", "instant": true },
+        { "refId": "B", "expr": "max by(horizontalpodautoscaler)(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"shoply\"})", "legendFormat": "{{horizontalpodautoscaler}}", "instant": true }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "sortBy": [{ "displayName": "horizontalpodautoscaler" }] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 31 }
+    },
+
+    { "type": "row", "id": 40, "title": "📦 파드 자원 (cAdvisor)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 } },
+
+    {
+      "type": "timeseries", "id": 41, "title": "서비스별 CPU 사용률 (% of limit)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{
+        "refId": "A",
+        "expr": "sum by(service)(label_replace(rate(container_cpu_usage_seconds_total{namespace=\"shoply\",container!=\"\",container!=\"POD\"}[1m]), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) / sum by(service)(label_replace(max by(namespace,pod,container)(kube_pod_container_resource_limits{namespace=\"shoply\",resource=\"cpu\",container!=\"\"}), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) * 100",
+        "legendFormat": "{{service}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 }
+    },
+    {
+      "type": "timeseries", "id": 42, "title": "서비스별 메모리 사용률 (% of limit)",
+      "datasource": { "type": "prometheus", "uid": "prometheus-onprem" },
+      "targets": [{
+        "refId": "A",
+        "expr": "sum by(service)(label_replace(container_memory_working_set_bytes{namespace=\"shoply\",container!=\"\",container!=\"POD\"}, \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) / sum by(service)(label_replace(max by(namespace,pod,container)(kube_pod_container_resource_limits{namespace=\"shoply\",resource=\"memory\",container!=\"\"}), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) * 100",
+        "legendFormat": "{{service}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 }
+    },
+
+    { "type": "row", "id": 50, "title": "📋 로그 / 이벤트 (Loki)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 } },
+
+    {
+      "type": "logs", "id": 51, "title": "shoply 앱 로그",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [{ "refId": "A", "expr": "{namespace=\"shoply\"}" }],
+      "options": { "dedupStrategy": "none", "wrapLogMessage": false, "showTime": true, "sortOrder": "Descending" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 49 }
+    },
+    {
+      "type": "logs", "id": 52, "title": "k8s 이벤트 (Pending 사유 등)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [{ "refId": "A", "expr": "{source=\"kubernetes-events\"}" }],
+      "options": { "dedupStrategy": "none", "wrapLogMessage": false, "showTime": true, "sortOrder": "Descending" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 57 }
+    },
+
+    { "type": "row", "id": 60, "title": "📊 k8s 이벤트 통계 (스케줄 결과)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 65 } },
+
+    {
+      "type": "stat", "id": 61, "title": "✅ 스케줄 성공 (Scheduled)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [{ "refId": "A", "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"Scheduled\" [$__range]))" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 66 }
+    },
+    {
+      "type": "stat", "id": 62, "title": "⏳ Pending (FailedScheduling)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [{ "refId": "A", "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" [$__range]))" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "yellow" } }, "overrides": [] },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 66 }
+    },
+    {
+      "type": "stat", "id": 63, "title": "❌ 실패 (BackOff · Unhealthy)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [{ "refId": "A", "expr": "sum(count_over_time({source=\"kubernetes-events\"} |~ \"BackOff|Unhealthy|CrashLoopBackOff\" [$__range]))" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } }, "overrides": [] },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 66 }
+    },
+    {
+      "type": "timeseries", "id": 64, "title": "⏳ Pending 사유별 추이",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        { "refId": "A", "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" |= \"Insufficient cpu\" [1m]))", "legendFormat": "Insufficient CPU" },
+        { "refId": "B", "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" |= \"Insufficient memory\" [1m]))", "legendFormat": "Insufficient Memory" },
+        { "refId": "C", "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" |= \"no nodes available\" [1m]))", "legendFormat": "No Nodes Available" }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 70 }
+    }
+
+  ]
+}

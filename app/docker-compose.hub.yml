@@ -1,0 +1,39 @@
+# Docker Hub(soldesk1184) 최신 이미지로 띄우는 compose — 로그인/동작 검증용
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: msa_postgres
+    command: ["postgres", "-c", "max_connections=300"]
+    environment:
+      POSTGRES_DB: shoply
+      POSTGRES_USER: shoply
+      POSTGRES_PASSWORD: shoply1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shoply"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  user:
+    image: soldesk1184/shoply-user:latest
+    container_name: msa_user
+    env_file: .env
+    ports:
+      - "4005:4005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    image: soldesk1184/shoply-gateway:latest
+    container_name: msa_gateway
+    env_file: .env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - user

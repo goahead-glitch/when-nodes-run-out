@@ -1,0 +1,78 @@
+# Prometheus가 클러스터 외부(별도 VM)에 있을 경우 NodePort로 스크랩
+# 내부에 Prometheus가 있다면 이 파일 불필요
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-metrics
+  namespace: shoply
+spec:
+  selector:
+    app: gateway
+  ports:
+    - name: metrics
+      port: 4000
+      targetPort: 4000
+      nodePort: 30400
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-metrics
+  namespace: shoply
+spec:
+  selector:
+    app: product
+  ports:
+    - name: metrics
+      port: 4001
+      targetPort: 4001
+      nodePort: 30401
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-metrics
+  namespace: shoply
+spec:
+  selector:
+    app: inventory
+  ports:
+    - name: metrics
+      port: 4002
+      targetPort: 4002
+      nodePort: 30402
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-metrics
+  namespace: shoply
+spec:
+  selector:
+    app: order
+  ports:
+    - name: metrics
+      port: 4003
+      targetPort: 4003
+      nodePort: 30403
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-metrics
+  namespace: shoply
+spec:
+  selector:
+    app: payment
+  ports:
+    - name: metrics
+      port: 4004
+      targetPort: 4004
+      nodePort: 30404
+  type: NodePort
+# frontend는 ingress-nginx(30080)를 통해 접근 — 별도 NodePort 불필요

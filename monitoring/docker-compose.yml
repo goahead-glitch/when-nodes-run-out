@@ -1,0 +1,87 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus-onprem.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'   # k6 Prometheus remote write 수신
+      - '--web.enable-admin-api'
+      - '--enable-feature=exemplar-storage'               # 스냅샷 API 활성화
+
+  # ── Prometheus (EKS 전용) — k6 remote-write 수신만 담당. EKS 클러스터 자체 스크랩 없음(인증 불필요) ──
+  prometheus-eks:
+    image: prom/prometheus:latest
+    container_name: prometheus-eks
+    restart: always
+
+    ports:
+      - "9091:9091"
+
+    volumes:
+      - /home/ubuntu/monitoring/prometheus-eks/prometheus-eks.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_eks_data:/prometheus
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.listen-address=:9091"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+      - "--web.enable-remote-write-receiver"
+      - "--web.enable-admin-api"
+      - "--enable-feature=exemplar-storage"
+
+  # ── Loki — 로그 저장 (Grafana로 로그/이벤트 조회) ──────────────
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: loki
+    restart: always
+    ports:
+      - "3100:3100"                 # 클러스터 Promtail/event-exporter가 여기로 push
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+
+  # ── Tempo — 트레이스 저장 + 서비스그래프 메트릭 생성 ──────────
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: tempo
+    restart: always
+    command: -config.file=/etc/tempo/tempo.yml
+    ports:
+      - "3200:3200"     # Tempo 쿼리 (Grafana)
+      - "4317:4317"     # OTLP gRPC (앱 트레이스 수신)
+      - "4318:4318"     # OTLP HTTP (앱 트레이스 수신)
+    volumes:
+      - ./tempo.yaml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin1234
+      - GF_USERS_ALLOW_SIGN_UP=false
+
+volumes:
+  prometheus_data:
+  prometheus_eks_data:
+  grafana_data:
+  loki_data:
+  tempo_data:

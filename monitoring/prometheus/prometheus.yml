@@ -1,0 +1,100 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # ── 온프레미스 앱 메트릭 ──────────────────────────────────────
+  - job_name: "app-onprem"
+    # 타겟마다 service 라벨 부여 → 쿼리에서 IP 대신 service="order" 식으로 사용 (IP 의존 제거)
+    static_configs:
+      - targets: ["10.0.0.65:30400"]
+        labels: { service: gateway }
+      - targets: ["10.0.0.65:30401"]
+        labels: { service: product }
+      - targets: ["10.0.0.65:30402"]
+        labels: { service: inventory }
+      - targets: ["10.0.0.65:30403"]
+        labels: { service: order }
+      - targets: ["10.0.0.65:30404"]
+        labels: { service: payment }
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+
+  # ── cAdvisor (파드별 CPU/메모리 — worker1·2) ─────────────────
+  # 호스트 EC2 DNAT: 38080→worker1:8080, 38081→worker2:8080
+  - job_name: "cadvisor-onprem"
+    static_configs:
+      - targets: ["10.0.0.65:38080"]
+        labels: { node: worker1 }
+      - targets: ["10.0.0.65:38081"]
+        labels: { node: worker2 }
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+    # standalone cAdvisor는 container_label_io_kubernetes_pod_* 로 내보냄 → namespace/pod/container 로 변환
+    metric_relabel_configs:
+      - source_labels: [container_label_io_kubernetes_pod_namespace]
+        target_label: namespace
+      - source_labels: [container_label_io_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [container_label_io_kubernetes_container_name]
+        target_label: container
+
+  # ── Node Exporter (K8s EC2 호스트 + KVM 워커) ───────────────
+  # 타겟마다 node 라벨 부여 → 대시보드는 node="worker1" 로 쿼리 (호스트IP 독립).
+  # 재구축 시 여기 호스트IP 한 곳만 바꾸면 됨 (대시보드는 안 건드림).
+  - job_name: "node-onprem"
+    static_configs:
+      - targets: ["10.0.0.65:9100"]
+        labels: { node: ec2-host }
+      - targets: ["10.0.0.65:39101"]
+        labels: { node: worker1 }
+      - targets: ["10.0.0.65:39102"]
+        labels: { node: worker2 }
+      - targets: ["10.0.0.65:39103"]
+        labels: { node: worker3 }
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+
+  # ── Node Exporter (PostgreSQL / Redis EC2) ───────────────────
+  - job_name: "node-db-onprem"
+    static_configs:
+      - targets:
+          - "10.0.8.127:9100" # PostgreSQL EC2
+          - "10.0.11.55:9100" # Redis EC2
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+
+  # ── PostgreSQL Exporter ───────────────────────────────────────
+  - job_name: "postgres-onprem"
+    static_configs:
+      - targets: ["10.0.8.127:9187"]
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+
+  # ── Redis Exporter ────────────────────────────────────────────
+  - job_name: "redis-onprem"
+    static_configs:
+      - targets: ["10.0.11.55:9121"]
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+
+  # ── kube-state-metrics ────────────────────────────────────────
+  - job_name: "kube-state-onprem"
+    static_configs:
+      - targets: ["10.0.0.65:30800"]
+    relabel_configs:
+      - target_label: env
+        replacement: onprem
+
+  # ── EKS 항목 (EKS 구성 완료 후 주석 해제) ────────────────────
+  # - job_name: 'app-eks'
+  # - job_name: 'node-eks'
+  # - job_name: 'kube-state-eks'
+  # - job_name: 'postgres-eks'
+  # - job_name: 'redis-eks'

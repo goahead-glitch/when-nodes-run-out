@@ -1,0 +1,2164 @@
+{
+  "uid": "shoply-eks",
+  "title": "EKS 전용 — 노드 자동확장 (Karpenter)",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "FailedScheduling (Pending 발생)",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "enable": true,
+        "iconColor": "red",
+        "target": {
+          "expr": "{source=\"kubernetes-events\"} |= \"FailedScheduling\""
+        }
+      }
+    ]
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "🎛 부하 (입력) — k6 (EKS)",
+      "id": 100,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "동시접속 VU",
+      "id": 101,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "k6_vus",
+          "legendFormat": "VU"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 20,
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "전체 RPS (gateway)",
+      "id": 102,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(gateway_http_duration_seconds_count{route!~\"/health|/metrics|/livez\"}[1m]))",
+          "legendFormat": "RPS"
+        }
+      ],
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "실패율 (k6)",
+      "id": 103,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(k6_http_reqs_total{expected_response=\"false\"}[1m])) / clamp_min(sum(rate(k6_http_reqs_total[1m])), 1)",
+          "legendFormat": "실패율"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      }
+    },
+    {
+      "type": "row",
+      "title": "🎯 한눈 상태 (EKS)",
+      "id": 110,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      }
+    },
+    {
+      "type": "stat",
+      "title": "노드 수",
+      "id": 111,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(node)(kube_node_info))"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 9
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Running 파드 (shoply)",
+      "id": 112,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Running\"} == 1))"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 9
+      }
+    },
+    {
+      "type": "stat",
+      "title": "⚠️ Pending 파드",
+      "id": 113,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1)) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 9
+      }
+    },
+    {
+      "type": "stat",
+      "title": "P95 (gateway)",
+      "id": 114,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by(le)(rate(gateway_http_duration_seconds_bucket{route!~\"/health|/metrics|/livez\"}[1m])))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 9
+      }
+    },
+    {
+      "type": "row",
+      "title": "📈 스케일 거동 (EKS) — 실험 핵심",
+      "id": 120,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "노드 수 추이",
+      "id": 121,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(node)(kube_node_info))",
+          "legendFormat": "nodes"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 15
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⚠️ Pending 파드 추이 (전체)",
+      "id": 122,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(group by(pod)(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1)) or vector(0)",
+          "legendFormat": "Pending"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "custom": {
+            "fillOpacity": 25
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 15
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⚠️ 서비스별 Pending 파드",
+      "id": 124,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service)(label_replace(kube_pod_status_phase{namespace=\"shoply\", phase=\"Pending\"} == 1, \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\"))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 30,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 15
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "노드별 CPU (%)",
+      "id": 123,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 - (avg by(instance)(sum without(mode)(rate(node_cpu_seconds_total{mode=~\"idle|steal|iowait\"}[1m]))) * 100)",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 100
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 15
+      }
+    },
+    {
+      "type": "row",
+      "title": "⚡ 성능 & HPA (EKS)",
+      "id": 130,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "RPS (order·payment)",
+      "id": 131,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(order_service_http_duration_seconds_count{route!~\"/health|/metrics|/livez\"}[1m]))",
+          "legendFormat": "order"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(payment_service_http_duration_seconds_count{route!~\"/health|/metrics|/livez\"}[1m]))",
+          "legendFormat": "payment"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 24
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "P95 (order·payment)",
+      "id": 132,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by(le)(rate(order_service_http_duration_seconds_bucket{route!~\"/health|/metrics|/livez\"}[1m])))",
+          "legendFormat": "order"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by(le)(rate(payment_service_http_duration_seconds_bucket{route!~\"/health|/metrics|/livez\"}[1m])))",
+          "legendFormat": "payment"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 24
+      }
+    },
+    {
+      "type": "table",
+      "title": "HPA 현재/최대 replica",
+      "id": 133,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(horizontalpodautoscaler)(kube_horizontalpodautoscaler_status_current_replicas{namespace=\"shoply\"})",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "max by(horizontalpodautoscaler)(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"shoply\"})",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 24
+      }
+    },
+    {
+      "type": "row",
+      "title": "📦 파드 자원 (cAdvisor, EKS)",
+      "id": 140,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "서비스별 CPU (millicore)",
+      "id": 141,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service)(label_replace(rate(container_cpu_usage_seconds_total{namespace=\"shoply\",container!=\"\",container!=\"POD\"}[1m]), \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\")) * 1000",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 33
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "서비스별 메모리 (bytes)",
+      "id": 142,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service)(label_replace(container_memory_working_set_bytes{namespace=\"shoply\",container!=\"\",container!=\"POD\"}, \"service\", \"$1\", \"pod\", \"^([^-]+)-.*\"))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      }
+    },
+    {
+      "type": "row",
+      "title": "📋 로그 / 이벤트 (Loki — 온프레·EKS 공용)",
+      "id": 150,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      }
+    },
+    {
+      "type": "logs",
+      "title": "shoply 앱 로그",
+      "id": 151,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{namespace=\"shoply\"}"
+        }
+      ],
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      }
+    },
+    {
+      "type": "logs",
+      "title": "k8s 이벤트 (Pending 사유 등)",
+      "id": 152,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{source=\"kubernetes-events\"}"
+        }
+      ],
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      }
+    },
+    {
+      "type": "row",
+      "title": "📋 로그 기반 실시간 — 스케줄 결과 (k8s 이벤트)",
+      "id": 160,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      }
+    },
+    {
+      "type": "stat",
+      "title": "✅ 스케줄 성공 (Scheduled)",
+      "id": 162,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "instant": true,
+          "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"Scheduled\" [$__range]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 52
+      }
+    },
+    {
+      "type": "stat",
+      "title": "⏳ Pending (FailedScheduling)",
+      "id": 163,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "instant": true,
+          "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" [$__range]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 52
+      }
+    },
+    {
+      "type": "stat",
+      "title": "❌ 실패 (BackOff·Unhealthy)",
+      "id": 164,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "instant": true,
+          "expr": "sum(count_over_time({source=\"kubernetes-events\"} |~ \"BackOff|Unhealthy|CrashLoopBackOff|FailedMount\" [$__range]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 52
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "⏳ Pending 사유별 추이 (왜 펜딩됐나)",
+      "id": 165,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" |= \"Insufficient cpu\" [1m]))",
+          "legendFormat": "CPU 부족"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" |= \"Insufficient memory\" [1m]))",
+          "legendFormat": "메모리 부족"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" |= \"untolerated taint\" [1m]))",
+          "legendFormat": "taint(노드 격리)"
+        },
+        {
+          "refId": "D",
+          "expr": "sum(count_over_time({source=\"kubernetes-events\"} |= \"FailedScheduling\" |~ \"didn.t match|affinity|selector\" [1m]))",
+          "legendFormat": "affinity/selector"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 40,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 56
+      }
+    },
+    {
+      "type": "row",
+      "title": "🟩 파드 보드 — 서비스별 (10칸 중 떠있는 만큼 초록 · max 10)",
+      "id": 180,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      }
+    },
+    {
+      "type": "canvas",
+      "title": "order",
+      "id": 1840,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "s1",
+          "instant": true,
+          "legendFormat": "s1",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 1"
+        },
+        {
+          "refId": "s2",
+          "instant": true,
+          "legendFormat": "s2",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 2"
+        },
+        {
+          "refId": "s3",
+          "instant": true,
+          "legendFormat": "s3",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 3"
+        },
+        {
+          "refId": "s4",
+          "instant": true,
+          "legendFormat": "s4",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 4"
+        },
+        {
+          "refId": "s5",
+          "instant": true,
+          "legendFormat": "s5",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 5"
+        },
+        {
+          "refId": "s6",
+          "instant": true,
+          "legendFormat": "s6",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 6"
+        },
+        {
+          "refId": "s7",
+          "instant": true,
+          "legendFormat": "s7",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 7"
+        },
+        {
+          "refId": "s8",
+          "instant": true,
+          "legendFormat": "s8",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 8"
+        },
+        {
+          "refId": "s9",
+          "instant": true,
+          "legendFormat": "s9",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 9"
+        },
+        {
+          "refId": "s10",
+          "instant": true,
+          "legendFormat": "s10",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"order-.*\", phase=\"Running\"}) >= bool 10"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#30373f",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "inlineEditing": false,
+        "showAdvancedTypes": false,
+        "panZoom": false,
+        "infinitePan": false,
+        "root": {
+          "name": "Element 0",
+          "type": "frame",
+          "background": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "constraint": {
+            "horizontal": "left",
+            "vertical": "top"
+          },
+          "placement": {
+            "top": 0,
+            "left": 0,
+            "width": 100,
+            "height": 100
+          },
+          "elements": [
+            {
+              "name": "c1",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s1"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 10,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c2",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s2"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 108,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c3",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s3"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 206,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c4",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s4"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 304,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c5",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s5"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 402,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c6",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s6"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 500,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c7",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s7"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 598,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c8",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s8"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 696,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c9",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s9"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 794,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c10",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s10"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 892,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            }
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 63
+      }
+    },
+    {
+      "type": "canvas",
+      "title": "product",
+      "id": 1820,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "s1",
+          "instant": true,
+          "legendFormat": "s1",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 1"
+        },
+        {
+          "refId": "s2",
+          "instant": true,
+          "legendFormat": "s2",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 2"
+        },
+        {
+          "refId": "s3",
+          "instant": true,
+          "legendFormat": "s3",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 3"
+        },
+        {
+          "refId": "s4",
+          "instant": true,
+          "legendFormat": "s4",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 4"
+        },
+        {
+          "refId": "s5",
+          "instant": true,
+          "legendFormat": "s5",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 5"
+        },
+        {
+          "refId": "s6",
+          "instant": true,
+          "legendFormat": "s6",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 6"
+        },
+        {
+          "refId": "s7",
+          "instant": true,
+          "legendFormat": "s7",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 7"
+        },
+        {
+          "refId": "s8",
+          "instant": true,
+          "legendFormat": "s8",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 8"
+        },
+        {
+          "refId": "s9",
+          "instant": true,
+          "legendFormat": "s9",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 9"
+        },
+        {
+          "refId": "s10",
+          "instant": true,
+          "legendFormat": "s10",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"product-.*\", phase=\"Running\"}) >= bool 10"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#30373f",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "inlineEditing": false,
+        "showAdvancedTypes": false,
+        "panZoom": false,
+        "infinitePan": false,
+        "root": {
+          "name": "Element 0",
+          "type": "frame",
+          "background": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "constraint": {
+            "horizontal": "left",
+            "vertical": "top"
+          },
+          "placement": {
+            "top": 0,
+            "left": 0,
+            "width": 100,
+            "height": 100
+          },
+          "elements": [
+            {
+              "name": "c1",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s1"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 10,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c2",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s2"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 108,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c3",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s3"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 206,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c4",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s4"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 304,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c5",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s5"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 402,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c6",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s6"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 500,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c7",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s7"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 598,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c8",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s8"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 696,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c9",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s9"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 794,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c10",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s10"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 892,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            }
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 67
+      }
+    },
+    {
+      "type": "canvas",
+      "title": "payment",
+      "id": 1850,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-eks"
+      },
+      "targets": [
+        {
+          "refId": "s1",
+          "instant": true,
+          "legendFormat": "s1",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 1"
+        },
+        {
+          "refId": "s2",
+          "instant": true,
+          "legendFormat": "s2",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 2"
+        },
+        {
+          "refId": "s3",
+          "instant": true,
+          "legendFormat": "s3",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 3"
+        },
+        {
+          "refId": "s4",
+          "instant": true,
+          "legendFormat": "s4",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 4"
+        },
+        {
+          "refId": "s5",
+          "instant": true,
+          "legendFormat": "s5",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 5"
+        },
+        {
+          "refId": "s6",
+          "instant": true,
+          "legendFormat": "s6",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 6"
+        },
+        {
+          "refId": "s7",
+          "instant": true,
+          "legendFormat": "s7",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 7"
+        },
+        {
+          "refId": "s8",
+          "instant": true,
+          "legendFormat": "s8",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 8"
+        },
+        {
+          "refId": "s9",
+          "instant": true,
+          "legendFormat": "s9",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 9"
+        },
+        {
+          "refId": "s10",
+          "instant": true,
+          "legendFormat": "s10",
+          "expr": "sum(kube_pod_status_phase{namespace=\"shoply\", pod=~\"payment-.*\", phase=\"Running\"}) >= bool 10"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#30373f",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "inlineEditing": false,
+        "showAdvancedTypes": false,
+        "panZoom": false,
+        "infinitePan": false,
+        "root": {
+          "name": "Element 0",
+          "type": "frame",
+          "background": {
+            "color": {
+              "fixed": "transparent"
+            }
+          },
+          "constraint": {
+            "horizontal": "left",
+            "vertical": "top"
+          },
+          "placement": {
+            "top": 0,
+            "left": 0,
+            "width": 100,
+            "height": 100
+          },
+          "elements": [
+            {
+              "name": "c1",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s1"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 10,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c2",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s2"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 108,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c3",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s3"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 206,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c4",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s4"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 304,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c5",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s5"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 402,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c6",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s6"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 500,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c7",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s7"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 598,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c8",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s8"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 696,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c9",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s9"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 794,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            },
+            {
+              "name": "c10",
+              "type": "rectangle",
+              "config": {
+                "color": {
+                  "fixed": "#ffffff"
+                }
+              },
+              "background": {
+                "color": {
+                  "field": "s10"
+                }
+              },
+              "border": {
+                "color": {
+                  "fixed": "#2a3340"
+                },
+                "width": 2,
+                "radius": 8
+              },
+              "placement": {
+                "top": 10,
+                "left": 892,
+                "width": 90,
+                "height": 60
+              },
+              "constraint": {
+                "horizontal": "left",
+                "vertical": "top"
+              }
+            }
+          ]
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 71
+      }
+    }
+  ]
+}
