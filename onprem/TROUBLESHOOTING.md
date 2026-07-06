@@ -2,6 +2,31 @@
 
 KVM 기반 온프레미스 k8s 클러스터를 구축·재구축하면서 실제로 겪은 문제들을 시간순으로 정리했습니다. 클러스터를 여러 번 재구축하는 과정에서 반복적으로 마주친 이슈들이라, 같은 구성을 다시 만들 때 참고할 수 있도록 증상→원인→해결 순으로 남깁니다.
 
+## 목차
+
+1. [브리지 모드 네트워크 안 잡힘](#1-브리지-모드-네트워크-안-잡힘)
+2. [netplan 파일 없음 / 권한 오류](#2-netplan-파일-없음--권한-오류)
+3. [`cannot call open vswitch: ovsdb-server.service is not running`](#3-cannot-call-open-vswitch-ovsdb-serverservice-is-not-running)
+4. [DNS 오류 (temporary failure resolving)](#4-dns-오류-temporary-failure-resolving)
+5. [swap 재부팅 후 다시 활성화](#5-swap-재부팅-후-다시-활성화)
+6. [KVM VM SSH 접속 불가 (publickey)](#6-kvm-vm-ssh-접속-불가-publickey)
+7. [KVM VM IP 재부팅 후 변경](#7-kvm-vm-ip-재부팅-후-변경)
+8. [Windows에서 KVM VM 직접 SSH 불가](#8-windows에서-kvm-vm-직접-ssh-불가)
+9. [Ubuntu 설치 후 무한 로딩 (로그인 프롬프트 안 나옴)](#9-ubuntu-설치-후-무한-로딩-로그인-프롬프트-안-나옴)
+10. [kubeadm join 실패 — `ip_forward not set to 1`](#10-kubeadm-join-실패--ip_forward-not-set-to-1)
+11. [flannel CrashLoopBackOff — br_netfilter 모듈 없음](#11-flannel-crashloopbackoff--br_netfilter-모듈-없음)
+12. [helm install 실패 모음 (ingress-nginx)](#12-helm-install-실패-모음-ingress-nginx)
+13. [kube-apiserver CrashLoopBackOff — loopback(127.0.0.1) 방화벽 DROP ★](#13-kube-apiserver-crashloopbackoff--loopback127001-방화벽-drop-)
+14. [frontend CrashLoopBackOff — nginx upstream "gateway" host not found](#14-frontend-crashloopbackoff--nginx-upstream-gateway-host-not-found)
+15. [외부에서 사이트 접속 안 됨 — EIP DNAT 규칙 누락/IP불일치](#15-외부에서-사이트-접속-안-됨--eip-dnat-규칙-누락ip불일치)
+16. [Prometheus 타겟 down — node_exporter / kube-state-metrics 설치 누락](#16-prometheus-타겟-down--node_exporter--kube-state-metrics-설치-누락)
+17. [모니터링 타겟 down — 호스트 포워딩 (ip_forward / 실행 위치 / SG) ★](#17-모니터링-타겟-down--호스트-포워딩-ip_forward--실행-위치--sg-)
+18. [cAdvisor CrashLoopBackOff — read-only /var/run](#18-cadvisor-crashloopbackoff--read-only-varrun)
+19. [NodePort가 외부(호스트)에서 안 됨 — kube-proxy 재시작](#19-nodeport가-외부호스트에서-안-됨--kube-proxy-재시작)
+20. [이미지 pull 실패 — `tls: certificate is valid for ingress.local, not ghcr.io`](#20-이미지-pull-실패--tls-certificate-is-valid-for-ingresslocal-not-ghcrio)
+
+★ 표시 2개(13, 17)가 가장 오래 걸리고 근본 원인 추적이 재미있었던 항목입니다.
+
 ---
 
 ## 1. 브리지 모드 네트워크 안 잡힘
@@ -112,6 +137,8 @@ rm /var/lib/libvirt/images/k8s-worker1-cloud-init.iso
 # 2. 패스워드 해시값 생성
 python3 -c "import crypt; print(crypt.crypt('ubuntu1234', crypt.mksalt(crypt.METHOD_SHA512)))"
 ```
+
+3. 생성된 해시값을 `user-data`의 `passwd` 필드에 넣어 cloud-init 설정 작성
 ```yaml
 #cloud-config
 hostname: k8s-worker1
