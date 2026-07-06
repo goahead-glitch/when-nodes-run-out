@@ -69,8 +69,11 @@ docker compose ps
 |---|---|
 | `grafana-dashboard-onprem.json` | 온프레미스 실험용 메인 대시보드 |
 | `grafana-dashboard-eks.json` | EKS 쪽 대시보드 |
-| `grafana-dashboard-compare.json` | 온프레 vs EKS 비교 뷰 |
+| `grafana-dashboard-compare.json` | 온프레 vs EKS 비교 뷰 — 노드 수·Running/Pending·노드별 CPU를 좌우로 나란히 표시 |
 | `grafana-dashboard-recommend.json` / `grafana-dashboard-load.json` | Grafana 추천/부하 관련 대시보드 |
+
+![온프레 vs EKS 비교 대시보드](../docs/images/onprem-eks-comparison-spike.png)
+> `grafana-dashboard-compare.json`으로 300 VU 부하 중 캡처 — 왼쪽 온프레는 Pending이 쌓인 채 유지, 오른쪽 EKS는 노드가 늘어나지만 Pending도 함께 스파이크쳤다가 뒤늦게 해소됨.
 
 ## 트러블슈팅에서 배운 것
 
