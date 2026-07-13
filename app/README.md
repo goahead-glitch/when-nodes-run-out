@@ -54,6 +54,14 @@ gateway는 요청 경로를 `/api/{service}` 수준으로 정규화해 Prometheu
 - **liveness/readiness 분리**(`/livez` vs `/health`): DB가 죽었을 때 전체 파드가 재시작 루프에 빠지는 것을 막기 위해, "프로세스가 살아있는지"(`/livez`)와 "트래픽을 받을 준비가 됐는지"(`/health`)를 분리했습니다.
 - **fetch 타임아웃**(order → inventory): 노드 장애로 inventory가 응답하지 않을 때 order가 무한 대기하지 않도록 `AbortSignal.timeout(5000)`을 적용했습니다.
 
+## 데이터 계층
+
+PostgreSQL 16은 테이블마다 소유 서비스가 있는 MSA 구조입니다(`users`→user, `products`→product, `inventory`→inventory, `orders`/`order_items`→order, `payments`→payment). `max_connections=300`으로 파드 다수 × 커넥션풀 합산에 대응합니다. Redis 7은 순수 캐시 용도(`maxmemory 256mb`, `allkeys-lru`, `--save ""`로 영속성 끔 — 캐시는 유실돼도 DB에서 재생성)로 주로 product 서비스가 사용합니다. 둘 다 별도 EC2에서 Docker Compose로 운영하며 온프레/EKS 양쪽이 공유하는 통제변수입니다.
+
+앱에는 실시간 주문 현황을 3초마다 갱신해 보여주는 관리자용 대시보드도 있습니다(부하 테스트 중 주문 성공/실패를 실시간으로 관찰하는 용도).
+
+![실시간 주문 현황](../docs/images/app-order-dashboard.png)
+
 ## 로컬 실행
 
 ```bash
@@ -72,3 +80,5 @@ docker compose up
 - `.github/workflows/ci.yml` — `develop`/`main`으로의 PR 시 변경된 서비스만 감지해 `tsc --noEmit` + `npm audit` + Docker 빌드 검증(push 안 함)
 - `.github/workflows/cd.yml` — `develop`/`main` push 시 변경된 서비스 이미지를 빌드해 GHCR(`ghcr.io/<owner>/shoply-<service>`)로 푸시, Trivy로 취약점 스캔(빌드는 막지 않음), 결과를 Slack으로 알림
 - `.github/workflows/cd-otel.yml` — `app` 브랜치 push 시 OpenTelemetry 계측이 포함된 이미지를 `:otel` 태그로 별도 빌드(기존 `:latest`에 영향 없음)
+
+![CI/CD 파이프라인](../docs/images/cicd-pipeline.png)

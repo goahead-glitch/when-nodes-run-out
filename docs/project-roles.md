@@ -21,9 +21,9 @@
 |---|---|
 | `app` | 쇼핑몰 MSA 7개 서비스(gateway/product/inventory/order/payment/user/frontend) 코드·로직·이미지 |
 | `onprem` | 온프레미스 인프라 전체 — EC2 위 KVM 가상머신으로 k8s 클러스터 구축, 네트워크(iptables DNAT), k8s 매니페스트, 배포, 백업/복원 |
-| `공용`(monitoring/k6/postgres/redis/userdata) | 모니터링 스택 구성, k6 부하 시나리오, 공용 DB/캐시, EC2 부트스트랩 |
+| `shared`(monitoring/k6/postgres/redis/userdata) | 모니터링 스택 구성, k6 부하 시나리오, 공용 DB/캐시, EC2 부트스트랩 |
 
-**이 레포에 없는 것**(팀원 담당): `terraform`(인프라 프로비저닝), EKS 클러스터 구축 및 `k8s/eks` 매니페스트.
+**팀원 담당**(본인 작성 아님): EKS 인프라 프로비저닝(terraform)·EKS 서비스 배포·CI/CD 운영 — `main`의 [`team/`](../team/) 폴더에 비교 참고용으로 보관.
 
 ## 담당 4영역 (실제 작업 흐름)
 

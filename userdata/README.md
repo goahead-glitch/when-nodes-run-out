@@ -37,5 +37,5 @@ docker compose ps            # 해당 역할의 compose 스택이 떠 있는지
 
 ## 관련 문서
 
-- EC2 보안그룹·전체 설정 절차 → [`EC2_설정_가이드.md`](EC2_설정_가이드.md)
+- EC2 보안그룹·전체 설정 절차 → [`ec2-setup-guide.md`](ec2-setup-guide.md)
 - 각 스택의 상세 구성 → [`../monitoring/README.md`](../monitoring/README.md), [`../postgres/README.md`](../postgres/README.md), [`../redis/README.md`](../redis/README.md), [`../k6/README.md`](../k6/README.md)
