@@ -6,7 +6,7 @@
 
 > 한 줄 원칙: **딱 하나 "노드 자동확장"만 다르게 두고, 나머지는 전부 같게.**
 
-![온프레미스 vs AWS EKS 아키텍처 비교](images/onprem-vs-eks-architecture.png)
+![온프레미스 vs AWS EKS 아키텍처 비교](images/onprem-vs-eks-architecture.svg)
 > 진입(MetalLB ↔ NLB)·트래픽 흐름(Nginx Ingress → MSA 파드)·컴퓨팅(고정 vs 탄력)·데이터/관측성 계층까지 양쪽을 나란히 놓고 비교한 다이어그램.
 
 ## A. 완전 동일하게 (통제변수)

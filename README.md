@@ -34,7 +34,7 @@
 
 온프레미스는 AWS EC2 위에 **KVM 가상머신 4대로 물리 클러스터를 재현**했습니다(kubeadm 직접 구성). EKS와의 비교 구성도와 트래픽 경로·포트 상세는 [`docs/architecture.md`](docs/architecture.md)에 있습니다.
 
-![온프레미스 vs AWS EKS 아키텍처 비교](docs/images/onprem-vs-eks-architecture.png)
+![온프레미스 vs AWS EKS 아키텍처 비교](docs/images/onprem-vs-eks-architecture.svg)
 
 ## 3. 내 역할 — 앱부터 실험까지 엔드투엔드
 

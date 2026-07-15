@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 1110" font-family="-apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1560" height="1110" fill="#ffffff"/>
+
+  <!-- 제목 -->
+  <text x="780" y="44" text-anchor="middle" font-size="26" font-weight="700" fill="#24292f">온프레미스 vs AWS EKS — 아키텍처 비교</text>
+  <text x="780" y="72" text-anchor="middle" font-size="14" fill="#57606a">같은 앱 · 같은 설정 — 단 하나의 변수(노드 자동확장)만 다르다</text>
+
+  <!-- 좌우 패널 -->
+  <rect x="30" y="96" width="690" height="744" rx="14" fill="#eef5fc" stroke="#b6d4f0"/>
+  <rect x="840" y="96" width="690" height="744" rx="14" fill="#fdf3e7" stroke="#f0d3ab"/>
+  <text x="375" y="128" text-anchor="middle" font-size="18" font-weight="700" fill="#1f5fa8">온프레미스 — 고정 자원 (Fixed)</text>
+  <text x="1185" y="128" text-anchor="middle" font-size="18" font-weight="700" fill="#b25e00">AWS EKS — 탄력 자원 (Elastic)</text>
+
+  <!-- 중앙 계층 라벨 -->
+  <text x="780" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">진입</text>
+  <text x="780" y="214" text-anchor="middle" font-size="11" fill="#57606a">동일 LB 추상화</text>
+  <text x="780" y="352" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">서비스</text>
+  <text x="780" y="370" text-anchor="middle" font-size="11" fill="#57606a">동일 매니페스트</text>
+  <text x="780" y="562" text-anchor="middle" font-size="14" font-weight="700" fill="#c0392b">컴퓨팅</text>
+  <text x="780" y="580" text-anchor="middle" font-size="11" font-weight="700" fill="#c0392b">★ 단 하나의 변수</text>
+  <text x="780" y="742" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">데이터</text>
+  <text x="780" y="760" text-anchor="middle" font-size="11" fill="#57606a">엔진 동일</text>
+
+  <!-- ═══ 진입 (온프레) ═══ -->
+  <rect x="60" y="156" width="140" height="44" rx="8" fill="#ffffff" stroke="#8ab4d8"/>
+  <text x="130" y="183" text-anchor="middle" font-size="13" fill="#24292f">사용자 / k6</text>
+  <line x1="200" y1="178" x2="238" y2="178" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="240" y="156" width="220" height="44" rx="8" fill="#ffffff" stroke="#8ab4d8"/>
+  <text x="350" y="174" text-anchor="middle" font-size="13" fill="#24292f">EC2 (EIP 공인 IP)</text>
+  <text x="350" y="192" text-anchor="middle" font-size="11" fill="#57606a">iptables DNAT</text>
+  <line x1="460" y1="178" x2="498" y2="178" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="500" y="156" width="190" height="44" rx="8" fill="#ffffff" stroke="#8ab4d8"/>
+  <text x="595" y="174" text-anchor="middle" font-size="13" fill="#24292f">MetalLB VIP</text>
+  <text x="595" y="192" text-anchor="middle" font-size="11" fill="#57606a">L2 Advertisement</text>
+  <text x="375" y="228" text-anchor="middle" font-size="12" fill="#c0392b">⚠ NAT 홉 +1 (KVM VM에 공인 IP 없음) → 응답시간은 변화율(%)로 비교해 상쇄</text>
+
+  <!-- ═══ 진입 (EKS) ═══ -->
+  <rect x="940" y="156" width="140" height="44" rx="8" fill="#ffffff" stroke="#e0b57e"/>
+  <text x="1010" y="183" text-anchor="middle" font-size="13" fill="#24292f">사용자 / k6</text>
+  <line x1="1080" y1="178" x2="1148" y2="178" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="1150" y="156" width="280" height="44" rx="8" fill="#ffffff" stroke="#e0b57e"/>
+  <text x="1290" y="174" text-anchor="middle" font-size="13" fill="#24292f">AWS NLB</text>
+  <text x="1290" y="192" text-anchor="middle" font-size="11" fill="#57606a">동일 LoadBalancer 인터페이스</text>
+  <text x="1185" y="228" text-anchor="middle" font-size="12" fill="#57606a">진입 홉이 온프레보다 하나 적음 — 그래서 절대값 아닌 변화율 비교</text>
+
+  <!-- ═══ 서비스 (온프레) ═══ -->
+  <rect x="60" y="262" width="630" height="180" rx="10" fill="#ffffff" stroke="#8ab4d8"/>
+  <text x="375" y="290" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">Nginx Ingress :30080 (NodePort · 양쪽 동일 컨트롤러)</text>
+  <g font-size="11" fill="#24292f">
+    <rect x="72" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="113" y="329" text-anchor="middle">gateway</text>
+    <rect x="160" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="201" y="329" text-anchor="middle">product</text>
+    <rect x="248" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="289" y="329" text-anchor="middle">inventory</text>
+    <rect x="336" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="377" y="329" text-anchor="middle">order</text>
+    <rect x="424" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="465" y="329" text-anchor="middle">payment</text>
+    <rect x="512" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="553" y="329" text-anchor="middle">user</text>
+    <rect x="600" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="641" y="329" text-anchor="middle">frontend</text>
+  </g>
+  <text x="375" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 동일 이미지(같은 SHA) · 네임스페이스 shoply</text>
+  <text x="375" y="396" text-anchor="middle" font-size="12" fill="#57606a">HPA 동일 — target CPU 70% · min 2 / max 10 (5개 서비스)</text>
+  <text x="375" y="420" text-anchor="middle" font-size="12" fill="#57606a">재고 SELECT FOR UPDATE(행 잠금) — 초과판매 방지 로직도 동일</text>
+
+  <!-- ═══ 서비스 (EKS) ═══ -->
+  <rect x="870" y="262" width="630" height="180" rx="10" fill="#ffffff" stroke="#e0b57e"/>
+  <text x="1185" y="290" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">Nginx Ingress :30080 (NodePort · 양쪽 동일 컨트롤러)</text>
+  <g font-size="11" fill="#24292f">
+    <rect x="882" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="923" y="329" text-anchor="middle">gateway</text>
+    <rect x="970" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1011" y="329" text-anchor="middle">product</text>
+    <rect x="1058" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1099" y="329" text-anchor="middle">inventory</text>
+    <rect x="1146" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1187" y="329" text-anchor="middle">order</text>
+    <rect x="1234" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1275" y="329" text-anchor="middle">payment</text>
+    <rect x="1322" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1363" y="329" text-anchor="middle">user</text>
+    <rect x="1410" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1451" y="329" text-anchor="middle">frontend</text>
+  </g>
+  <text x="1185" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 동일 이미지(같은 SHA) · 네임스페이스 shoply</text>
+  <text x="1185" y="396" text-anchor="middle" font-size="12" fill="#57606a">HPA 동일 — target CPU 70% · min 2 / max 10 (5개 서비스)</text>
+  <text x="1185" y="420" text-anchor="middle" font-size="12" fill="#57606a">동일 매니페스트 공유 — 온프레미스가 동일화 기준 제공</text>
+
+  <!-- ═══ 컴퓨팅 (온프레) ═══ -->
+  <rect x="60" y="472" width="630" height="208" rx="10" fill="#ffffff" stroke="#1f5fa8" stroke-width="2"/>
+  <text x="375" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="#1f5fa8">고정 — EC2 위 KVM 가상머신 4대 (kubeadm 직접 구성)</text>
+  <g font-size="12" fill="#24292f">
+    <rect x="76" y="516" width="140" height="60" rx="8" fill="#eef5fc" stroke="#8ab4d8"/>
+    <text x="146" y="540" text-anchor="middle" font-weight="700">master</text><text x="146" y="560" text-anchor="middle" font-size="11" fill="#57606a">컨트롤플레인</text>
+    <rect x="228" y="516" width="140" height="60" rx="8" fill="#eef5fc" stroke="#8ab4d8"/>
+    <text x="298" y="540" text-anchor="middle" font-weight="700">worker1</text><text x="298" y="560" text-anchor="middle" font-size="11" fill="#57606a">실험 전용</text>
+    <rect x="380" y="516" width="140" height="60" rx="8" fill="#eef5fc" stroke="#8ab4d8"/>
+    <text x="450" y="540" text-anchor="middle" font-weight="700">worker2</text><text x="450" y="560" text-anchor="middle" font-size="11" fill="#57606a">실험 전용</text>
+    <rect x="532" y="516" width="146" height="60" rx="8" fill="#eef5fc" stroke="#8ab4d8" stroke-dasharray="5 3"/>
+    <text x="605" y="540" text-anchor="middle" font-weight="700">worker3</text><text x="605" y="560" text-anchor="middle" font-size="11" fill="#57606a">운영 격리 (taint)</text>
+  </g>
+  <text x="375" y="606" text-anchor="middle" font-size="12" fill="#57606a">워커 2vCPU/4GB — 자원이 차도 노드를 늘릴 수 없음 (사람이 손대야 함)</text>
+  <rect x="120" y="626" width="510" height="36" rx="8" fill="#fdecea" stroke="#e5989b"/>
+  <text x="375" y="649" text-anchor="middle" font-size="13" font-weight="700" fill="#c0392b">자원 한계 도달 → Pending 적체 (= 측정하려는 현상 그 자체)</text>
+
+  <!-- ═══ 컴퓨팅 (EKS) ═══ -->
+  <rect x="870" y="472" width="630" height="208" rx="10" fill="#ffffff" stroke="#b25e00" stroke-width="2"/>
+  <text x="1185" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="#b25e00">탄력 — Managed Node Group + Karpenter (노드 자동확장)</text>
+  <g font-size="12" fill="#24292f">
+    <rect x="886" y="516" width="240" height="60" rx="8" fill="#fdf3e7" stroke="#e0b57e"/>
+    <text x="1006" y="540" text-anchor="middle" font-weight="700">고정 워커 노드그룹</text>
+    <text x="1006" y="560" text-anchor="middle" font-size="11" fill="#57606a">c8i-flex.large — 온프레와 동일 사양</text>
+    <line x1="1126" y1="546" x2="1178" y2="546" stroke="#b25e00" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="1180" y="516" width="300" height="60" rx="8" fill="#fff8ee" stroke="#e0b57e" stroke-dasharray="6 3"/>
+    <text x="1330" y="540" text-anchor="middle" font-weight="700">+ 새 노드 자동 추가</text>
+    <text x="1330" y="560" text-anchor="middle" font-size="11" fill="#57606a">Karpenter — 프로비저닝 60~90초</text>
+  </g>
+  <text x="1185" y="606" text-anchor="middle" font-size="12" fill="#57606a">수요에 따라 노드 증설 · ops 노드 분리 — Auto Mode 배제, 사양 고정으로 공정성 유지</text>
+  <rect x="930" y="626" width="510" height="36" rx="8" fill="#fef8e7" stroke="#e6c86e"/>
+  <text x="1185" y="649" text-anchor="middle" font-size="13" font-weight="700" fill="#8a6d00">Pending이 먼저 튀지만 → 노드 증설이 끝나면 해소 (스파이크 후 회복)</text>
+
+  <!-- ═══ 데이터 (온프레) ═══ -->
+  <rect x="60" y="708" width="300" height="80" rx="10" fill="#ffffff" stroke="#8ab4d8"/>
+  <text x="210" y="738" text-anchor="middle" font-size="13" font-weight="700" fill="#24292f">PostgreSQL 16</text>
+  <text x="210" y="760" text-anchor="middle" font-size="12" fill="#57606a">별도 EC2 · Docker · 사설 IP</text>
+  <rect x="390" y="708" width="300" height="80" rx="10" fill="#ffffff" stroke="#8ab4d8"/>
+  <text x="540" y="738" text-anchor="middle" font-size="13" font-weight="700" fill="#24292f">Redis 7</text>
+  <text x="540" y="760" text-anchor="middle" font-size="12" fill="#57606a">별도 EC2 · Docker · 캐시 전용</text>
+
+  <!-- ═══ 데이터 (EKS) ═══ -->
+  <rect x="870" y="708" width="300" height="80" rx="10" fill="#ffffff" stroke="#e0b57e"/>
+  <text x="1020" y="738" text-anchor="middle" font-size="13" font-weight="700" fill="#24292f">PostgreSQL 16</text>
+  <text x="1020" y="760" text-anchor="middle" font-size="12" fill="#57606a">RDS (관리형)</text>
+  <rect x="1200" y="708" width="300" height="80" rx="10" fill="#ffffff" stroke="#e0b57e"/>
+  <text x="1350" y="738" text-anchor="middle" font-size="13" font-weight="700" fill="#24292f">Redis 7</text>
+  <text x="1350" y="760" text-anchor="middle" font-size="12" fill="#57606a">EC2 · Private IP 고정</text>
+
+  <!-- 패널 → 관측 연결 -->
+  <line x1="375" y1="840" x2="375" y2="866" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="1185" y1="840" x2="1185" y2="866" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="860" text-anchor="end" font-size="11" fill="#57606a">exporters 직접 스크랩</text>
+  <text x="1200" y="860" text-anchor="start" font-size="11" fill="#57606a">exporters NodePort 노출</text>
+
+  <!-- ═══ 관측 계층 ═══ -->
+  <rect x="30" y="870" width="1500" height="196" rx="14" fill="#f5f2fc" stroke="#cfc4ec"/>
+  <text x="780" y="900" text-anchor="middle" font-size="16" font-weight="700" fill="#5b4b8a">관측 — 모니터링 EC2 한 대가 양쪽을 같은 눈금으로 본다</text>
+  <g font-size="12" fill="#24292f">
+    <rect x="75" y="918" width="330" height="72" rx="10" fill="#ffffff" stroke="#b3a5dd"/>
+    <text x="240" y="946" text-anchor="middle" font-weight="700">Prometheus :9090</text>
+    <text x="240" y="968" text-anchor="middle" font-size="11" fill="#57606a">온프레 스크랩 + k6 remote-write</text>
+    <rect x="435" y="918" width="330" height="72" rx="10" fill="#ffffff" stroke="#b3a5dd"/>
+    <text x="600" y="946" text-anchor="middle" font-weight="700">Prometheus :9091</text>
+    <text x="600" y="968" text-anchor="middle" font-size="11" fill="#57606a">EKS 쪽 k6 remote-write 수신 전용</text>
+    <rect x="795" y="918" width="330" height="72" rx="10" fill="#ffffff" stroke="#b3a5dd"/>
+    <text x="960" y="946" text-anchor="middle" font-weight="700">Grafana</text>
+    <text x="960" y="968" text-anchor="middle" font-size="11" fill="#57606a">반반 비교 대시보드 (온프레 ◀ | ▶ EKS)</text>
+    <rect x="1155" y="918" width="330" height="72" rx="10" fill="#ffffff" stroke="#b3a5dd"/>
+    <text x="1320" y="946" text-anchor="middle" font-weight="700">Loki</text>
+    <text x="1320" y="968" text-anchor="middle" font-size="11" fill="#57606a">앱 로그 · k8s 이벤트 (Promtail push)</text>
+  </g>
+  <text x="780" y="1028" text-anchor="middle" font-size="12" fill="#57606a">node_exporter · kube-state-metrics · cAdvisor를 양쪽에 동일 배포 — 트래픽·자원·파드 상태를 한 화면에서 같은 시간축으로 비교</text>
+  <text x="780" y="1052" text-anchor="middle" font-size="11" fill="#8b949e">when-nodes-run-out — 온프레미스가 기준, EKS는 이 값에 맞춘다 · 상세: docs/homogenization.md</text>
+</svg>
