@@ -101,7 +101,7 @@ flowchart TB
 
 > 한계의 정의 = Pending Pod이 처음 뜨는 지점입니다.
 
-## 노드 장애 시나리오 흐름 (시나리오 3 — 미실행)
+## 노드 장애 실험 설계 (미실행)
 
 ```mermaid
 flowchart TB
@@ -112,7 +112,7 @@ flowchart TB
   pend --> eks["EKS(예정): Karpenter 새 노드 자동 추가<br/>— 약 60초"]
 ```
 
-> 시나리오 3(MTTR 측정)은 시간 제약으로 실행하지 못한 설계안입니다 — [실험 문서](experiments.md) 참고.
+> 노드 장애 MTTR 측정은 시간 제약으로 실행하지 못한 설계안입니다 — [실험 문서](experiments.md) 참고.
 
 ## 포트 정리
 

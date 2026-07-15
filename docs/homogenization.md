@@ -42,7 +42,6 @@
 | **노드 자동확장** ★ | 고정 워커(안 늘어남) | Karpenter(노드 자동 추가) | **유일한 핵심 변수** |
 | 컨트롤플레인 | kubeadm 직접 운영 | AWS 관리형 | EKS 본질, 측정 안 함 |
 | 진입 경로 | EC2 iptables DNAT 1홉 추가 | 워커 공인 IP 직접 | KVM VM에 공인 IP가 없어 불가피 — 응답시간은 절대값이 아니라 **변화율(%)**로 비교해 상쇄 |
-| DB 자동복구(선택) | EC2 수동 승격 | RDS Multi-AZ 자동 | 시나리오 4(선택) — 실행 여부 미정 |
 
 ## 트래픽 진입 경로 차이
 
@@ -64,7 +63,7 @@
 | worker1 | gateway, product, inventory |
 | worker2 | frontend, order, payment, user |
 
-soft(=preferred)라서 노드가 죽으면 다른 노드로 재배치될 수 있습니다 — 시나리오 3(worker1 종료)에서 전부 worker2로 몰려 Pending이 발생하는 걸 관찰하는 목적입니다.
+soft(=preferred)라서 노드가 죽으면 다른 노드로 재배치될 수 있습니다 — 노드 장애 실험(worker1 종료, 설계만 하고 미실행)에서 전부 worker2로 몰려 Pending이 발생하는 걸 관찰하려던 목적입니다.
 
 ## 포트 (양쪽 동일하게 통일)
 

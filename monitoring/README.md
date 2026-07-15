@@ -40,7 +40,7 @@
 
 `app/` 브랜치 서비스들에 `tracing.js`로 OpenTelemetry를 붙여 OTLP(gRPC `:4317`/HTTP `:4318`)로 Tempo에 트레이스를 보내는 것까지는 구성해뒀습니다(Tempo가 서비스그래프/스팬 메트릭을 뽑아 Prometheus로 remote-write, Grafana Tempo 데이터소스에 `nodeGraph`/`tracesToLogsV2`/`tracesToMetrics` 연동 프로비저닝 완료).
 
-다만 이건 "일단 붙여보고 쓸만한지 확인해보자"는 탐색 차원의 시도였고, 실제 비교 실험(시나리오 1/2/3)에서는 사용하지 않았습니다 — 온프레/EKS 비교에 필요한 지표는 Prometheus/Grafana 메트릭만으로 충분히 관찰 가능했기 때문입니다.
+다만 이건 "일단 붙여보고 쓸만한지 확인해보자"는 탐색 차원의 시도였고, 실제 실험(점진 부하 한계 탐색·온프레-EKS 비교)에서는 사용하지 않았습니다 — 비교에 필요한 지표는 Prometheus/Grafana 메트릭만으로 충분히 관찰 가능했기 때문입니다.
 
 ## 로컬/EC2 실행
 

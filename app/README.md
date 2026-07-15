@@ -50,7 +50,7 @@ gateway는 요청 경로를 `/api/{service}` 수준으로 정규화해 Prometheu
 - **재고 동시성 — `SELECT FOR UPDATE`**: k6로 동시 주문을 몰아도 재고가 마이너스로 내려가지 않도록 inventory 서비스에서 행 잠금을 사용합니다.
 - **Mock 결제 95% 성공률**: 실제 PG 연동 없이 결제 실패 시나리오(재고 롤백 포함)를 재현하기 위한 선택입니다.
 - **Redis 캐시 TTL 차등(목록 60초/상세 30초)**: 상품 목록은 자주 안 바뀌지만 상세는 재고 반영이 더 즉각적이어야 해서 TTL을 짧게 뒀습니다.
-- **DB 페일오버 대응**: `pg.Pool`에 `connectionTimeoutMillis: 5000`, `keepAlive: true`, 그리고 idle 커넥션이 끊겨도 프로세스가 죽지 않도록 `pool.on('error', ...)` 핸들러를 추가했습니다. Primary DB가 죽는 노드 장애 시나리오(실험 3)에서 서비스가 크래시 루프에 빠지지 않게 하기 위함입니다.
+- **DB 연결 장애 대응**: `pg.Pool`에 `connectionTimeoutMillis: 5000`, `keepAlive: true`, 그리고 idle 커넥션이 끊겨도 프로세스가 죽지 않도록 `pool.on('error', ...)` 핸들러를 추가했습니다. DB가 죽거나 연결이 끊기는 상황에서 서비스가 크래시 루프에 빠지지 않게 하기 위함입니다.
 - **liveness/readiness 분리**(`/livez` vs `/health`): DB가 죽었을 때 전체 파드가 재시작 루프에 빠지는 것을 막기 위해, "프로세스가 살아있는지"(`/livez`)와 "트래픽을 받을 준비가 됐는지"(`/health`)를 분리했습니다.
 - **fetch 타임아웃**(order → inventory): 노드 장애로 inventory가 응답하지 않을 때 order가 무한 대기하지 않도록 `AbortSignal.timeout(5000)`을 적용했습니다.
 
