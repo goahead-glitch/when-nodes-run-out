@@ -11,7 +11,7 @@ spec:
     kind: Deployment
     name: product
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 99
   metrics:
     - type: Resource
       resource:
@@ -47,7 +47,7 @@ spec:
     kind: Deployment
     name: inventory
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 99
   metrics:
     - type: Resource
       resource:
@@ -83,7 +83,7 @@ spec:
     kind: Deployment
     name: order
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 99
   metrics:
     - type: Resource
       resource:
@@ -119,7 +119,7 @@ spec:
     kind: Deployment
     name: payment
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 99
   metrics:
     - type: Resource
       resource:
@@ -155,7 +155,7 @@ spec:
     kind: Deployment
     name: gateway
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 99
   metrics:
     - type: Resource
       resource:
