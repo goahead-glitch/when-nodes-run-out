@@ -141,7 +141,7 @@ GRAFANA
 
 # ── prometheus.yml (스텁 — 크래시 방지용. 실제 타겟은 따로 교체) ──
 #    재구축마다 호스트/DB/Redis 사설IP가 바뀌므로 여기엔 안 박는다.
-#    실제 타겟이 든 prometheus.yml(repo: team/infra/monitoring/prometheus/prometheus.yml)로
+#    실제 타겟이 든 prometheus.yml(repo: monitoring/prometheus/prometheus.yml)로
 #    교체 후:  docker compose restart prometheus
 if [ ! -f $MON/prometheus/prometheus.yml ]; then
 cat > $MON/prometheus/prometheus.yml <<'PROM'
@@ -167,7 +167,7 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
   # ⚠️ EKS 타겟(app/node/kube-state/cadvisor/postgres/redis, env="eks")은
-  #    repo: team/infra/monitoring/prometheus-eks/prometheus-eks.yml 로 교체 후
+  #    repo: monitoring/prometheus-eks/prometheus-eks.yml 로 교체 후
   #    docker compose restart prometheus-eks
 PROMEKS
 fi

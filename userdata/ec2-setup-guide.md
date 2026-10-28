@@ -31,7 +31,7 @@
 
 > AWS 콘솔 → EC2 인스턴스 시작 → 고급 세부 정보 → 사용자 데이터
 >
-> **파일 참고:** `msa_shoply/infra/userdata/postgresql.sh` 내용을 붙여넣기
+> **파일 참고:** [`userdata/postgresql.sh`](postgresql.sh) 내용을 붙여넣기
 
 > 완료 확인: `cat /var/log/user-data.log`
 
@@ -52,7 +52,7 @@
 
 ### User Data (EC2 생성 시 붙여넣기)
 
-> **파일 참고:** `msa_shoply/infra/userdata/redis.sh` 내용을 붙여넣기
+> **파일 참고:** [`userdata/redis.sh`](redis.sh) 내용을 붙여넣기
 
 ---
 
@@ -63,10 +63,10 @@
 ### PostgreSQL EC2로 전송
 
 ```bash
-# 로컬 Mac에서 실행
-# infra/postgres/ 폴더 전체를 서버로 전송
+# 로컬에서 실행 (이 저장소 루트에서)
+# postgres/ 폴더 전체를 서버로 전송
 scp -i ~/key/aws-3tier-keypair.pem -r \
-  /Users/kimminseo/shopping_k8s/msa_shoply/infra/postgres \
+  ./postgres \
   ubuntu@<PostgreSQL-EC2-공인IP>:~/
 ```
 
@@ -82,9 +82,9 @@ scp -i ~/key/aws-3tier-keypair.pem -r \
 ### Redis EC2로 전송
 
 ```bash
-# 로컬 Mac에서 실행
+# 로컬에서 실행 (이 저장소 루트에서)
 scp -i ~/key/aws-3tier-keypair.pem -r \
-  /Users/kimminseo/shopping_k8s/msa_shoply/infra/redis \
+  ./redis \
   ubuntu@<Redis-EC2-공인IP>:~/
 ```
 
