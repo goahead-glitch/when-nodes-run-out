@@ -15,11 +15,12 @@ k8s/
 │   ├── payment.yaml         # Payment Service + ClusterIP
 │   ├── gateway.yaml         # API Gateway + ClusterIP
 │   ├── frontend.yaml        # Frontend (nginx) + ClusterIP
+│   ├── redis.yaml           # Redis (클러스터 내부용)
+│   ├── ingress.yaml         # Nginx Ingress
 │   └── hpa.yaml             # HPA (product/inventory/order/payment/gateway)
 │
 └── onprem/                  # 온프레미스 전용
     ├── configmap-patch.yaml     # DB/Redis EC2 IP 오버라이드
-    ├── ingress.yaml             # Nginx Ingress
     ├── nodeport-services.yaml   # NodePort (Prometheus 외부 스크랩용)
     ├── metallb-config.yaml      # MetalLB IPAddressPool/L2Advertisement
     ├── cadvisor-daemonset.yaml  # 워커 노드별 컨테이너 메트릭
@@ -27,7 +28,7 @@ k8s/
     └── event-exporter-loki.yaml # k8s 이벤트(Pending 등) → Loki
 ```
 
-> EKS용 매니페스트(`k8s/eks/`)는 팀원 담당 영역이라 이 레포에는 없습니다.
+> EKS용 매니페스트는 팀원 담당 영역으로, 원문 그대로 [`team/eks-service/`](../../team/eks-service/)에 보관돼 있습니다.
 
 ---
 
@@ -51,6 +52,8 @@ kubectl create secret docker-registry ghcr-secret \
 ### 온프레미스
 
 ```bash
+cd onprem   # 아래 경로는 저장소의 onprem/ 폴더 기준
+
 # 1. 네임스페이스 + 공통 리소스
 kubectl apply -f k8s/common/namespace.yaml
 kubectl create secret docker-registry ghcr-secret \
@@ -71,16 +74,19 @@ kubectl apply -f k8s/common/frontend.yaml
 
 # 3. HPA + Ingress
 kubectl apply -f k8s/common/hpa.yaml
-kubectl apply -f k8s/onprem/ingress.yaml
+kubectl apply -f k8s/common/ingress.yaml
 
-# 4. (옵션) Prometheus 외부 스크랩용 NodePort
+# 4. MetalLB VIP 할당 (MetalLB 설치 후)
+kubectl apply -f k8s/onprem/metallb-config.yaml
+
+# 5. (옵션) 모니터링 — Prometheus 외부 스크랩용 NodePort, 컨테이너 메트릭, 로그·이벤트 수집
 kubectl apply -f k8s/onprem/nodeport-services.yaml
-
-# 5. (옵션) 리소스 제한 조정
-kubectl apply -f k8s/onprem/resource-patch.yaml
+kubectl apply -f k8s/onprem/cadvisor-daemonset.yaml
+kubectl apply -f k8s/onprem/promtail-loki.yaml
+kubectl apply -f k8s/onprem/event-exporter-loki.yaml
 ```
 
-> EKS 배포 순서는 팀원 담당 영역이라 이 레포에는 없습니다 (온프레미스와 동일한 `common/` 매니페스트를 공유하고, `eks/` 전용 오버레이만 다릅니다).
+> EKS 배포 순서는 팀원 담당 영역으로 [`team/eks-service/README.md`](../../team/eks-service/README.md)에 있습니다. 앱 이미지와 HPA·리소스 기준값은 온프레미스와 동일하게 맞췄습니다([동일화 문서](../../docs/homogenization.md)).
 
 ---
 
@@ -98,9 +104,10 @@ kubectl apply -f k8s/onprem/resource-patch.yaml
 
 ## 이미지 빌드 & 푸시
 
-이미지는 `app/` 브랜치의 GitHub Actions(`cd.yml`)가 `develop`/`main` push 시 자동으로 빌드해 GHCR로 푸시합니다. 로컬에서 수동으로 빌드하려면:
+이미지는 GitHub Actions([`.github/workflows/cd.yml`](../../.github/workflows/cd.yml))가 `develop`/`main` push 시 자동으로 빌드해 GHCR로 푸시합니다. 로컬에서 수동으로 빌드하려면:
 
 ```bash
+cd app   # 저장소의 app/ 폴더 기준
 REGISTRY=ghcr.io/<YOUR_GITHUB_USERNAME>
 
 docker build -t $REGISTRY/shoply-user:latest ./services/user

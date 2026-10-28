@@ -32,17 +32,17 @@
 
 ## 1. EC2 User Data (인스턴스 생성 시)
 
-> **파일 참고:** `msa_shoply/infra/userdata/monitoring.sh` 내용을 User Data에 붙여넣기
+> **파일 참고:** [`userdata/monitoring.sh`](../userdata/monitoring.sh) 내용을 User Data에 붙여넣기
 >
 > 완료 확인: `cat /var/log/user-data.log`
 
 ---
 
-## 2. 파일 전송 (로컬 Mac에서)
+## 2. 파일 전송 (로컬에서, 이 저장소 루트 기준)
 
 ```bash
 scp -i ~/key/aws-3tier-keypair.pem -r \
-  /Users/kimminseo/shopping_k8s/msa_shoply/infra/monitoring \
+  ./monitoring \
   ubuntu@<Monitoring-EC2-공인IP>:~/
 ```
 
