@@ -17,7 +17,7 @@
 |---|---|
 | 이미지 | GHCR 동일 SHA |
 | 부하 도구 | k6(동일 스크립트) — [`../k6/README.md`](../k6/README.md) |
-| 리소스 | request 100m/limit 500m, HPA target 70%(min2/max10) |
+| 리소스 | request 100m/limit 500m, HPA target 70% · min 2 · max 99 (초기 max 10에서 변경 — [동일화 문서](homogenization.md) 참고) |
 | 데이터 | 상품 20\~456종, 계정 test1\~2000(`Test1234!`) |
 | 실험 전 | `load-test-prep.sql`로 DB 리셋(재고 사전 세팅으로 실험 오염 방지) |
 
@@ -44,7 +44,7 @@ Pending 0          파드 증설 시작       워커 CPU 80~90%       Pending �
 단계별로 관찰된 변화:
 
 1. **안정 구간**: Pending 0, 에러 0% — 평상시 수준의 부하에서는 온프레미스 고정 4노드도 충분히 버팁니다.
-2. **HPA 반응**: 부하가 올라가자 CPU 70% 임계값을 넘긴 서비스부터 파드가 증설되기 시작 — gateway는 max(10)까지, product는 7개까지 확장([HPA 반응 캡처](../onprem/images/hpa-under-load.png)).
+2. **HPA 반응**: 부하가 올라가자 CPU 70% 임계값을 넘긴 서비스부터 파드가 증설되기 시작 — gateway는 당시 상한(max 10)까지, product는 7개까지 확장 — 이 실행은 HPA 상한을 99로 바꾸기 전에 진행([HPA 반응 캡처](../onprem/images/hpa-under-load.png)).
 3. **자원 포화**: 워커 노드 CPU가 80\~90%까지 상승, Running 파드는 33개까지 증가.
 4. **한계 도달**: 노드는 4개로 고정된 채 더 이상 파드를 받을 곳이 없어 **Pending 파드가 0→7개까지 적체**, P95 레이턴시 **6.54초**, k6 실패율 **최대 6%**. 이 지점이 "고정 자원의 한계"입니다.
 

@@ -53,8 +53,8 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 ![ingress-nginx LoadBalancer](images/ingress-nginx.png)
 > MetalLB가 ingress-nginx-controller 서비스에 EXTERNAL-IP(192.168.122.240)를 할당 — 이 VIP로 호스트 DNAT가 트래픽을 넘깁니다.
 
-- **EC2 iptables DNAT** — KVM VM은 공인 IP가 없어 `EC2:30080 → DNAT → master_VM:30080` 식으로 호스트가 NAT 포워딩합니다.
-- **iptables DNAT 포워딩** — VM 내부 NodePort 메트릭을 외부 Prometheus로 노출(30400~30404, 30800, 39101/39102 등).
+- **EC2 iptables DNAT** — KVM VM은 공인 IP가 없어 `EC2:80/443 → DNAT → MetalLB VIP(192.168.122.240) → Nginx Ingress` 식으로 호스트가 NAT 포워딩합니다.
+- **iptables DNAT 포워딩** — VM 내부 NodePort 메트릭을 외부 Prometheus로 노출(30400~30404, 30800, 39101~39103, 38080~38081).
 - 스크립트: [`scripts/host-network.sh`](scripts/host-network.sh) — `ip_forward`·DNAT·FORWARD를 호스트 사설IP 자동 감지로 한 번에 설정.
 
 ## 서비스 배포 — k8s 매니페스트
