@@ -1,7 +1,6 @@
-# 14. 진입 경로 — LoadBalancer (온프레 MetalLB ↔ EKS NLB)
+# 02. 진입 경로 — LoadBalancer (온프레 MetalLB ↔ EKS NLB)
 
-> 📁 **원본 실행 문서** — 팀 저장소 `Incheon-soda/shoply`의 `문서/14_도메인_MetalLB.md`(2026-06-12)를 그대로 옮겼습니다. AMI 이전에 실제로 클러스터를 세울 때 쓰던 문서입니다.
-> 최종 정리본: [`../README.md`](../README.md) 네트워크
+> 📁 원본: 팀 저장소 `Incheon-soda/shoply`의 `문서/14_도메인_MetalLB.md` → 이 폴더 02번(2026-06-12). AMI 이전에 실제로 쓰던 실행 문서를 옮겼습니다.
 
 > 트래픽 진입을 **양쪽 다 `Service type: LoadBalancer`** 로 통일한다.
 > EKS는 **NLB**(클라우드 L4 LB), 온프레는 **MetalLB**(소프트웨어 L4 LB)로 같은 추상화를 구현 → **공정 비교**.
@@ -80,7 +79,7 @@ sudo sysctl -w net.ipv4.ip_forward=1
 ```
 > ⚠️ **`-d $HOST_IP` 필수** — 안 붙이면 "443번 포트면 전부" VIP로 DNAT되어, 워커 노드가 ghcr.io 등
 > 외부 443으로 나가는 트래픽(이미지 pull 등)까지 가로채서 `tls: certificate is valid for ingress.local, not ghcr.io`로
-> ImagePullBackOff가 난다 (11_트러블슈팅 참고).
+> ImagePullBackOff가 난다 (onprem/TROUBLESHOOTING.md 20번 참고).
 >
 > SG: 호스트 EC2 인바운드 **80, 443** 허용. (`scripts/host-network.sh`에 30080 대신 80/443도 추가 가능)
 

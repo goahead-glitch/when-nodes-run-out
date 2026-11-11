@@ -1,8 +1,7 @@
-# 온프레미스 K8s 구축 가이드 (AWS EC2 + KVM)
+# 01. 온프레미스 K8s 구축 가이드 (AWS EC2 + KVM)
 
-> 📁 **원본 실행 문서** — 팀 저장소 `Incheon-soda/shoply`의 `문서/06_설치_k8s_KVM.md`(2026-06-12)를 그대로 옮겼습니다. AMI 이전에 실제로 클러스터를 세울 때 쓰던 문서입니다.
-> 최종 정리본: [`README.md`](README.md)의 재구축 순서  
-> ⚠️ 이후 바뀐 점: VM 3대 기준 — worker3 추가·역할 부여는 이 폴더 README의 '노드 역할' 단계, 진입은 14번
+> 📁 원본: 팀 저장소 `Incheon-soda/shoply`의 `문서/06_설치_k8s_KVM.md` → 이 폴더 01번(2026-06-12). AMI 이전에 실제로 쓰던 실행 문서를 옮겼습니다.  
+> ⚠️ VM 3대 기준으로 쓰여 있음 — VM은 worker3까지 4대로 만들고, 역할 부여는 [README](README.md)의 '노드 역할', 진입은 [02번](02_진입_MetalLB_DNAT.md)
 
 ---
 
@@ -430,7 +429,7 @@ hostname -I | awk '{print $1}'
 > ⚠️ **이 IP를 안 바꾸면 Prometheus 타겟이 조용히 `down`으로 남는다** (에러 로그도 없이 그냥 안 보임).
 > EC2를 재생성하면 사설 IP가 바뀌므로, scrape target의 `node-onprem`/`kube-state-onprem` 등이 `down`으로 뜨면
 > 이 IP가 옛날 값(예: 재생성 전 `10.0.9.69`)인 채로 남아있는지부터 의심할 것.
-> → 자세한 증상·해결은 [11_트러블슈팅 §16](11_트러블슈팅.md#16-prometheus-타겟-down--node_exporter--kube-state-metrics-설치-누락) 참고.
+> → 자세한 증상·해결은 [트러블슈팅 16번](../TROUBLESHOOTING.md#16-prometheus-타겟-down--node_exporter--kube-state-metrics-설치-누락) 참고.
 
 ---
 
@@ -613,7 +612,7 @@ done
 # 5-1. ★ gateway alias Service (필수 — 없으면 frontend가 CrashLoopBackOff)
 #   frontend 이미지의 nginx.conf가 upstream을 "gateway:4000"으로 하드코딩(빌드 시 고정)했는데
 #   실제 Service 이름은 "gateway-svc"라 DNS 조회 실패 → nginx가 시작도 못 하고 죽는다.
-#   재빌드 없이, 같은 selector(app: gateway)의 "gateway" Service를 추가해 해결 (→ 11_트러블슈팅 §14).
+#   재빌드 없이, 같은 selector(app: gateway)의 "gateway" Service를 추가해 해결 (→ onprem/TROUBLESHOOTING.md 14번).
 cat << 'EOF' | kubectl apply -f -
 apiVersion: v1
 kind: Service

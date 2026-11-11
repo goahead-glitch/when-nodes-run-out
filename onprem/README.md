@@ -101,7 +101,7 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 클러스터를 여러 번 재구축하면서 겪은 문제들을 전부 기록해뒀습니다.
 
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — 네트워크·kubeadm·flannel·apiserver·ingress 등 구축 과정에서 마주친 문제 20가지(증상→원인→해결)
-- [`runbook/`](runbook/) — **처음부터 세울 때 실제로 쓰던 원본 실행 문서**(01~15번)와 AMI 없이 다시 세우는 순서
+- [`runbook/`](runbook/) — **처음부터 세울 때 실제로 쓰던 실행 문서**(구축 순서대로 01~06번)와 AMI 없이 다시 세우는 순서
 - [`BACKUP-RESTORE.md`](BACKUP-RESTORE.md) — 스팟 호스트 EC2가 회수될 때를 대비한 AMI 백업 · qcow2 수동 백업/복원 절차, 그리고 복원 후 매번 반복되는 삽질(br_netfilter, DB/Redis IP 갱신 등)을 "무삽질"로 만든 영구화 방법
 
 이 중 진단 과정을 깊게 정리한 3건(flannel br_netfilter, 외부 접속 DNAT, 모니터링 타겟 다운)은 [`docs/incidents/`](../docs/incidents/)에 회고로 따로 남겼습니다.
