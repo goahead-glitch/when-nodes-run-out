@@ -9,7 +9,7 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 
 | EC2 | 역할 |
 |---|---|
-| c8i.2xlarge (스팟) | k8s 호스트 — KVM VM 4대 + 호스트 Nginx/iptables |
+| c8i-flex.2xlarge (스팟) | k8s 호스트 — KVM VM 4대 + 호스트 Nginx/iptables |
 | PostgreSQL EC2 | DB (Docker, PostgreSQL 16, `max_connections=300`) |
 | Redis EC2 | 캐시 (Docker, Redis 7) |
 
@@ -76,11 +76,11 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 | 항목 | 값 | 이유 |
 |---|---|---|
 | resource | request **100m** / limit **500m**(frontend 50m/200m) | request를 작게 둬서 HPA가 민감하게 발동하도록 |
-| HPA | target CPU **70%**, min **2** / max **10**, 60초당 +2개 | 노드 자원 한계(Pending)까지 파드가 늘어나는 걸 관찰하기 위해 상한을 넉넉히 잡음 |
+| HPA | target CPU **70%**, min **2** / max **99**, 60초당 +2개 | 파드 수를 HPA가 아니라 노드 자원이 제한하도록 상한을 풀어둠 (초기 동작 확인 땐 기본값 10) |
 | 배치 | soft nodeAffinity(worker1/worker2) | 초기 고정 배치, HPA로 늘어난 파드는 자유 배치 |
 | 인증 | GHCR imagePullSecret | private 이미지 pull |
 
-> **HPA 조정 시행착오**: 처음엔 각 서비스 replicas 2개 + HPA max를 낮게 제한해뒀습니다. 그런데 부하를 줘도 파드가 많이 안 늘고 CPU·메모리도 크게 안 올랐습니다. → replicas 1개 시작 + max를 넉넉히 풀어서, 노드 한계까지 파드가 늘어나 Pending이 관찰되도록 바꿨습니다(max를 낮게 제한하면 노드가 안 터져서 "고정 자원의 한계"를 못 보여주기 때문).
+> **HPA 조정 시행착오**: 처음엔 기본값인 HPA max 10으로 온프레가 잘 동작하는지 확인했습니다. 그런데 리소스 request를 낮게 둔 데다 부하가 세서 파드가 상한에 너무 빨리 찼고, 노드 한계(Pending)까지 가기 전에 HPA가 먼저 막혔습니다. 그래서 **Deployment replicas 1개로 시작 + HPA min 2 / max 99**로 상한을 풀었습니다(HPA min이 2라 적용 후에는 서비스마다 최소 2개로 유지). 아래 HPA 캡처(MAXPODS 10)는 상한을 풀기 전 단계입니다.
 
 자세한 배포 순서·체크리스트는 [`k8s/README.md`](k8s/README.md) 참고.
 
@@ -92,7 +92,7 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 ![부하 시 파드 목록](images/pods-under-load.png)
 > 실제로 gateway/product 파드 수가 늘어나는 모습(생성된 지 몇 분 안 된 파드들이 다수 보임) — HPA가 의도대로 작동함을 확인.
 
-**EKS와의 직접 비교**: Grafana에 온프레·EKS 양쪽 Prometheus를 동시에 붙인 반반 비교 대시보드로 같은 부하(최대 300 VU)를 걸어봤습니다. 온프레는 노드 4개 고정 상태라 Pending이 6\~7개까지 쌓여 수 분간 유지된 반면, EKS는 Karpenter가 노드를 3→8개로 늘렸음에도 Pending이 최대 12개까지 두 차례 스파이크친 뒤에야 해소됐습니다 — 자동확장이 있어도 노드 프로비저닝 시간(60\~90초) 동안은 Pending이 쌓인다는 걸 눈으로 확인한 셈입니다. 자세한 수치·부하 테스트 영상은 [`../docs/experiments.md`](../docs/experiments.md) 참고.
+**EKS와의 직접 비교**: Grafana에 온프레·EKS 양쪽 Prometheus를 동시에 붙인 반반 비교 대시보드로 같은 부하(최대 300 VU)를 걸어봤습니다. 온프레는 노드 4개 고정 상태라 Pending이 6\~7개까지 쌓여 수 분간 유지된 반면, EKS는 Karpenter가 노드를 3→8개로 늘렸음에도 Pending이 최대 12개까지 두 차례 스파이크친 뒤에야 해소됐습니다 — 노드가 3개에서 8개가 되기까지 약 6분 동안 계단식으로 늘었고, 자동확장이 있어도 새 노드가 준비되기 전까지는 Pending이 쌓인다는 걸 눈으로 확인한 셈입니다. 자세한 수치·부하 테스트 영상은 [`../docs/experiments.md`](../docs/experiments.md) 참고.
 
 ![온프레미스 vs EKS 비교 — 부하 유지 구간](../docs/images/onprem-eks-comparison-spike.png)
 

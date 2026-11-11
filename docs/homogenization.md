@@ -15,25 +15,25 @@
 |---|---|
 | 앱 이미지 | 같은 태그로 온프레·EKS 동일 빌드(GHCR) |
 | 네임스페이스 | `shoply` (양쪽 동일) |
-| **HPA 설정값** | **target CPU 70%, minReplicas 2, maxReplicas 99**(5개 서비스: gateway/product/inventory/order/payment) — 세 값 모두 양쪽 동일 |
+| **HPA 설정값** | **target CPU 70%, minReplicas 2, maxReplicas 99**(5개 서비스: gateway/product/inventory/order/payment) — 비교 실험 기준값, 양쪽 동일 |
 | resource requests/limits | request 100m / limit 500m(frontend 50m/200m), 서비스별 동일값 |
 | K8s 마이너 버전 | 1.34 |
 | 진입 | ingress-nginx(양쪽 동일 컨트롤러·라우팅), **ALB는 안 씀** — LB 종류가 다르면 트래픽 경로·응답시간이 오염되므로 통제변수로 고정 |
 | 모니터링 컴포넌트 | node_exporter · kube-state-metrics · cAdvisor · promtail(양쪽 동일 배포) |
 | DB/Redis 엔진 | PostgreSQL 16 / Redis 7 동일 버전, `max_connections=300`, 앱 pool max 8(서비스당) |
 
-> HPA는 처음엔 max 10으로 두었으나, 파드가 상한에 막혀 노드 한계(Pending)까지 도달하는 데 시간이 오래 걸려 **양쪽 모두 max 99로 변경**했습니다 — 파드 수는 HPA가 아니라 노드 자원이 제한하도록 해서, "노드 자동확장"의 차이가 드러나게 하기 위함입니다. 온프레 vs EKS 비교 실험(실행 ②)은 이 값으로 진행했습니다.
+> HPA는 처음엔 기본값인 max 10으로 두고 온프레·EKS 각각 잘 동작하는지 확인했습니다. 그런데 리소스 request를 낮게(100m) 둔 데다 부하가 세서 파드가 상한 10에 너무 빨리 찼고, 그러면 노드 한계(Pending)까지 가기 전에 HPA가 먼저 막힙니다. 그래서 두 환경을 함께 비교하기 전에 **양쪽 모두 max 99로 상한을 풀었습니다** — 파드 수를 HPA가 아니라 노드 자원이 제한하도록 해서 "노드 자동확장"의 차이가 드러나게 하기 위함입니다.
 
 ## B. 비슷하게 (완전 일치는 불가능, 최대한 근접)
 
 | 항목 | 온프레미스 | EKS |
 |---|---|---|
 | CNI | Flannel | AWS VPC CNI(aws-node) — 구현은 다르나 둘 다 L3 파드망, 측정 대상 아님 |
-| 노드 스펙 | 실험 워커: KVM VM 2vCPU/4GB (호스트 c8i.2xlarge) | 실험 노드(api·service): **c8i-flex.large** 2vCPU/4GB · ops 노드: t3.medium (비용 절감) |
+| 노드 스펙 | 실험 워커: KVM VM 2vCPU/4GB (호스트 c8i-flex.2xlarge) | 워커 노드: **t3.medium** 2vCPU/4GB (비교 실험 당시 실제 값) |
 | OS | Ubuntu 24.04 | EKS 최적화 AMI(Ubuntu 24.04.4) |
 | 컨테이너 런타임 | containerd 2.x | containerd 2.2.1 |
 
-> 실험 워커 1노드 = 2vCPU/4GB, 같은 c8i 계열로 양쪽 동일 — 이게 "고정 자원의 한계 vs 탄력 자원" 비교의 전제입니다. 측정에 쓰지 않는 ops 노드(모니터링·ingress 등)는 비용 때문에 EKS에서 t3.medium으로 두었습니다.
+> 노드 1대 = 2vCPU/4GB로 **숫자만** 맞췄습니다. 비교 실험 당시 EKS 워커는 t3.medium(이전 세대 · 버스터블 — CPU 크레딧을 다 쓰면 성능이 제한됨)이었고, 온프레 VM은 c8i-flex(Intel Xeon 6, 상시 성능) 호스트 위에서 돌았습니다. 실험할 때는 이 차이를 통제 변수로 인식하지 못했고, 결과를 분석하면서 알게 됐습니다 — 이 실험의 가장 큰 실패 이유입니다. (`team/infra/eks_launch_template.tf`에는 c8i-flex.large로 적혀 있지만, 비교 실험 때 실제로 뜬 EKS 워커는 t3.medium이었습니다.)
 
 ## C. 의도적으로 다르게 두는 것 (독립변수)
 

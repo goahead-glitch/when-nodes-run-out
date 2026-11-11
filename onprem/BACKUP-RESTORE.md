@@ -32,7 +32,7 @@
 
 ## 2. AMI로 새 인스턴스 시작 (복원)
 
-EC2 → AMI → 해당 AMI 선택 → AMI로 인스턴스 시작. 인스턴스 타입은 **c8i.2xlarge**(중첩 가상화 동일), 구매 옵션 **스팟**, 기존 호스트 EC2 보안그룹 사용.
+EC2 → AMI → 해당 AMI 선택 → AMI로 인스턴스 시작. 인스턴스 타입은 **c8i-flex.2xlarge**(중첩 가상화 동일), 구매 옵션 **스팟**, 기존 호스트 EC2 보안그룹 사용.
 
 > 중첩 가상화(vmx/svm)는 AMI에 설정이 안 따라올 수 있습니다. 새 인스턴스에서 `grep -c 'vmx\|svm' /proc/cpuinfo`가 0이면 인스턴스 타입/CPU 옵션에서 다시 켭니다.
 
@@ -159,6 +159,8 @@ sudo virsh autostart k8s-master k8s-worker1 k8s-worker2 k8s-worker3
 
 | 증상 | 원인 / 조치 |
 |---|---|
+| `kubectl get nodes` → `...:6443 was refused` (apiserver CrashLoop) | master VM 방화벽이 loopback(127.0.0.1)을 DROP — 재부팅 후 자주 발생. `curl -k -m 5 https://127.0.0.1:2379/health`가 timeout이면 확정 → [`TROUBLESHOOTING.md` 13번](TROUBLESHOOTING.md#13-kube-apiserver-crashloopbackoff--loopback127001-방화벽-drop-) |
+| 위 조치(방화벽 flush) 후 호스트→master NodePort만 timeout | flush로 kube-proxy 규칙도 지워짐 → kube-proxy 파드 재시작([`TROUBLESHOOTING.md` 19번](TROUBLESHOOTING.md#19-nodeport가-외부호스트에서-안-됨--kube-proxy-재시작)) |
 | 모든 파드 `ContainerCreating` + `flannel ... subnet.env: no such file` | flannel CrashLoop 먼저 해결(4-1) |
 | flannel 파드 `CrashLoopBackOff`(일부 노드만) | 그 노드에 br_netfilter 안 올라옴 → 그 워커 안에서 modprobe |
 | `modprobe` 했는데 계속 `no such file` | master에서 친 것일 수 있음 — 죽은 그 워커 안에서 해야 함 |

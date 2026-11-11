@@ -61,5 +61,6 @@ systemctl restart kubelet
 
 ## 재발 방지
 
-- 재부팅/재구축 과정에서 flannel·kube-proxy가 반쯤 깨진 상태로 방화벽 룰이 오염될 수 있다는 걸 확인했고, 클러스터 복원 절차([`../../onprem/BACKUP-RESTORE.md`](../../onprem/BACKUP-RESTORE.md))에 방화벽 상태 확인 단계를 넣었다.
+- 재부팅/재구축 과정에서 flannel·kube-proxy가 반쯤 깨진 상태로 방화벽 룰이 오염될 수 있다는 걸 확인했다. 근본 원인을 막지는 못해 재부팅 후에도 자주 재발했고, 대신 복원 문서([`../../onprem/BACKUP-RESTORE.md`](../../onprem/BACKUP-RESTORE.md)의 증상별 표)와 복원 스크립트 안내에 "6443 refused → loopback 확인 → flush → kube-proxy 재시작" 순서를 넣어 바로 대응할 수 있게 했다.
+- 돌아보면 방화벽을 통째로 비운 건 원인 확인과 긴급 복구로는 유효했지만, 보안 관점에서는 문을 전부 연 조치였다. 다시 한다면 기본 차단 정책은 유지하고 loopback과 쿠버네티스에 필요한 포트(6443, 2379-2380, 10250 등)만 허용하는 규칙으로 정리하겠다.
 - `connection refused` vs `i/o timeout` 구분을 이후 모든 네트워크 장애의 1차 진단 기준으로 삼았다(모니터링 타겟 진단에도 같은 원칙을 재사용).

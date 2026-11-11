@@ -15,7 +15,7 @@ k8s/
 │   ├── payment.yaml         # Payment Service + ClusterIP
 │   ├── gateway.yaml         # API Gateway + ClusterIP
 │   ├── frontend.yaml        # Frontend (nginx) + ClusterIP
-│   ├── redis.yaml           # Redis (클러스터 내부용)
+│   ├── redis.yaml           # Redis (클러스터 내부용 — 현재 미사용, 실험은 별도 Redis EC2 사용)
 │   ├── ingress.yaml         # Nginx Ingress
 │   └── hpa.yaml             # HPA (product/inventory/order/payment/gateway)
 │

@@ -56,7 +56,7 @@ gateway는 요청 경로를 `/api/{service}` 수준으로 정규화해 Prometheu
 
 ## 데이터 계층
 
-PostgreSQL 16은 테이블마다 소유 서비스가 있는 MSA 구조입니다(`users`→user, `products`→product, `inventory`→inventory, `orders`/`order_items`→order, `payments`→payment). `max_connections=300`으로 파드 다수 × 커넥션풀 합산에 대응합니다. Redis 7은 순수 캐시 용도(`maxmemory 256mb`, `allkeys-lru`, `--save ""`로 영속성 끔 — 캐시는 유실돼도 DB에서 재생성)로 주로 product 서비스가 사용합니다. 둘 다 별도 EC2에서 Docker Compose로 운영하며 온프레/EKS 양쪽이 공유하는 통제변수입니다.
+PostgreSQL 16은 테이블마다 소유 서비스가 있는 MSA 구조입니다(`users`→user, `products`→product, `inventory`→inventory, `orders`/`order_items`→order, `payments`→payment). `max_connections=300`으로 파드 다수 × 커넥션풀 합산에 대응합니다. Redis 7은 순수 캐시 용도(`maxmemory 256mb`, `allkeys-lru`, `--save ""`로 영속성 끔 — 캐시는 유실돼도 DB에서 재생성)로 주로 product 서비스가 사용합니다. 온프레미스는 둘 다 별도 EC2에서 Docker Compose로 운영했고, EKS 쪽은 PostgreSQL을 RDS(같은 16 버전)로 운영했습니다 — 엔진·버전·스키마를 맞춘 통제변수입니다.
 
 앱에는 실시간 주문 현황을 3초마다 갱신해 보여주는 관리자용 대시보드도 있습니다(부하 테스트 중 주문 성공/실패를 실시간으로 관찰하는 용도).
 

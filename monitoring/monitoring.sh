@@ -58,7 +58,7 @@ services:
       - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin1234
+      - GF_SECURITY_ADMIN_PASSWORD=admin1234   # 실습용 기본값 — 외부 노출 시 반드시 변경
       - GF_USERS_ALLOW_SIGN_UP=false
 
 volumes:

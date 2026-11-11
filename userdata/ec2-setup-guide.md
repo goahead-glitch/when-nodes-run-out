@@ -23,7 +23,7 @@
 | 인스턴스 타입 | t3.medium |
 | AMI | Ubuntu 24.04 LTS |
 | 스토리지 | 30GB gp3 |
-| 보안그룹 | 5432 (c8i.2xlarge SG), 9187 (Monitoring SG), 22 (Admin IP) |
+| 보안그룹 | 5432 (c8i-flex.2xlarge SG), 9187 (Monitoring SG), 22 (Admin IP) |
 | 퍼블릭 IP | 필요 (파일 전송용 SCP, 이후 보안그룹으로 제한) |
 | 키페어 | aws-3tier-keypair.pem |
 
@@ -46,7 +46,7 @@
 | 인스턴스 타입 | t3.micro |
 | AMI | Ubuntu 24.04 LTS |
 | 스토리지 | 8GB gp3 |
-| 보안그룹 | 6379 (c8i.2xlarge SG 또는 Worker Node SG), 9121 (Monitoring SG), 22 (Admin IP) |
+| 보안그룹 | 6379 (c8i-flex.2xlarge SG 또는 Worker Node SG), 9121 (Monitoring SG), 22 (Admin IP) |
 | 퍼블릭 IP | 필요 (파일 전송용 SCP) |
 | 키페어 | aws-3tier-keypair.pem |
 
@@ -200,7 +200,7 @@ docker exec -it shoply-redis redis-cli DBSIZE
 
 | 방향 | 포트 | 소스 | 이유 |
 |------|------|------|------|
-| 인바운드 | 5432 | c8i.2xlarge SG | k8s 파드 → DB |
+| 인바운드 | 5432 | c8i-flex.2xlarge SG | k8s 파드 → DB |
 | 인바운드 | 9187 | Monitoring SG | postgresql_exporter |
 | 인바운드 | 9100 | Monitoring SG | node_exporter |
 | 인바운드 | 22 | Admin IP/32 | SSH |
@@ -210,7 +210,7 @@ docker exec -it shoply-redis redis-cli DBSIZE
 
 | 방향 | 포트 | 소스 | 이유 |
 |------|------|------|------|
-| 인바운드 | 6379 | c8i.2xlarge SG | k8s 파드 → Redis |
+| 인바운드 | 6379 | c8i-flex.2xlarge SG | k8s 파드 → Redis |
 | 인바운드 | 9121 | Monitoring SG | redis_exporter |
 | 인바운드 | 9100 | Monitoring SG | node_exporter |
 | 인바운드 | 22 | Admin IP/32 | SSH |

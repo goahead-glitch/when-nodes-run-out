@@ -70,7 +70,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  a["중첩가상화 Launch Template"] --> b["c8i.2xlarge 스팟 기동"]
+  a["중첩가상화 Launch Template"] --> b["c8i-flex.2xlarge 스팟 기동"]
   b --> c["KVM/libvirt 설치"]
   c --> d["cloud-init으로 VM 4대 초기화<br/>master/worker1·2·3"]
   d --> e["각 VM: containerd·kubeadm·kubelet"]
