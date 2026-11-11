@@ -9,7 +9,7 @@
 
   <!-- 제목 -->
   <text x="780" y="44" text-anchor="middle" font-size="26" font-weight="700" fill="#24292f">온프레미스 vs AWS EKS — 아키텍처 비교</text>
-  <text x="780" y="72" text-anchor="middle" font-size="14" fill="#57606a">같은 앱 · 같은 설정 — 의도한 변수는 노드 자동확장, 놓친 변수는 인스턴스 세대</text>
+  <text x="780" y="72" text-anchor="middle" font-size="14" fill="#57606a">같은 앱 · 같은 설정 — 의도한 변수는 노드 자동확장 (놓쳤던 인스턴스 차이는 재실험에서 맞춤)</text>
 
   <!-- 좌우 패널 -->
   <rect x="30" y="96" width="690" height="744" rx="14" fill="#eef5fc" stroke="#b6d4f0"/>
@@ -103,16 +103,16 @@
   <text x="1185" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="#b25e00">탄력 — Managed Node Group + Karpenter (노드 자동확장)</text>
   <g font-size="12" fill="#24292f">
     <rect x="886" y="516" width="240" height="60" rx="8" fill="#fdf3e7" stroke="#e0b57e"/>
-    <text x="1006" y="540" text-anchor="middle" font-weight="700">워커 노드 (비교 실험 당시)</text>
-    <text x="1006" y="560" text-anchor="middle" font-size="11" fill="#57606a">t3.medium — 2vCPU/4GB · 버스터블</text>
+    <text x="1006" y="540" text-anchor="middle" font-weight="700">워커 노드 2vCPU/4GB</text>
+    <text x="1006" y="560" text-anchor="middle" font-size="11" fill="#57606a">② t3.medium → ③ c8i-flex.large</text>
     <line x1="1126" y1="546" x2="1178" y2="546" stroke="#b25e00" stroke-width="2" marker-end="url(#arrow)"/>
     <rect x="1180" y="516" width="300" height="60" rx="8" fill="#fff8ee" stroke="#e0b57e" stroke-dasharray="6 3"/>
     <text x="1330" y="540" text-anchor="middle" font-weight="700">+ 새 노드 자동 추가</text>
-    <text x="1330" y="560" text-anchor="middle" font-size="11" fill="#57606a">Karpenter — 실측 3→8대, 약 6분</text>
+    <text x="1330" y="560" text-anchor="middle" font-size="11" fill="#57606a">Karpenter — ② 3→8대(약 6분) · ③ 9대</text>
   </g>
-  <text x="1185" y="606" text-anchor="middle" font-size="12" fill="#57606a">⚠ vCPU·메모리 숫자만 맞춤 — 세대·버스터블 차이(t3 vs c8i-flex)를 놓침</text>
+  <text x="1185" y="606" text-anchor="middle" font-size="12" fill="#57606a">⚠ 처음엔 숫자만 맞춤(t3 버스터블) → 원인 확인 후 c8i-flex로 교체</text>
   <rect x="930" y="626" width="510" height="36" rx="8" fill="#fef8e7" stroke="#e6c86e"/>
-  <text x="1185" y="649" text-anchor="middle" font-size="13" font-weight="700" fill="#8a6d00">실제: 노드가 늘어도 Pending 최대 12 · 실패율 0.32% (온프레 0.09%)</text>
+  <text x="1185" y="649" text-anchor="middle" font-size="13" font-weight="700" fill="#8a6d00">② Pending 최대 12 · 실패율 0.32%  →  ③ 9대 · 포화 노드 없음</text>
 
   <!-- ═══ 데이터 (온프레) ═══ -->
   <rect x="60" y="708" width="300" height="80" rx="10" fill="#ffffff" stroke="#8ab4d8"/>

@@ -29,11 +29,11 @@
 | 항목 | 온프레미스 | EKS |
 |---|---|---|
 | CNI | Flannel | AWS VPC CNI(aws-node) — 구현은 다르나 둘 다 L3 파드망, 측정 대상 아님 |
-| 노드 스펙 | 실험 워커: KVM VM 2vCPU/4GB (호스트 c8i-flex.2xlarge) | 워커 노드: **t3.medium** 2vCPU/4GB (비교 실험 당시 실제 값) |
+| 노드 스펙 | 실험 워커: KVM VM 2vCPU/4GB (호스트 c8i-flex.2xlarge) | 워커 노드 2vCPU/4GB: 실행 ② **t3.medium** → 실행 ③ **c8i-flex.large** |
 | OS | Ubuntu 24.04 | EKS 최적화 AMI(Ubuntu 24.04.4) |
 | 컨테이너 런타임 | containerd 2.x | containerd 2.2.1 |
 
-> 노드 1대 = 2vCPU/4GB로 **숫자만** 맞췄습니다. 비교 실험 당시 EKS 워커는 t3.medium(이전 세대 · 버스터블 — CPU 크레딧을 다 쓰면 성능이 제한됨)이었고, 온프레 VM은 c8i-flex(Intel Xeon 6, 상시 성능) 호스트 위에서 돌았습니다. 실험할 때는 이 차이를 통제 변수로 인식하지 못했고, 결과를 분석하면서 알게 됐습니다 — 이 실험의 가장 큰 실패 이유입니다. (`team/infra/eks_launch_template.tf`에는 c8i-flex.large로 적혀 있지만, 비교 실험 때 실제로 뜬 EKS 워커는 t3.medium이었습니다.)
+> 노드 1대 = 2vCPU/4GB로 **숫자만** 맞췄습니다. 비교 실험 당시 EKS 워커는 t3.medium(이전 세대 · 버스터블 — CPU 크레딧을 다 쓰면 성능이 제한됨)이었고, 온프레 VM은 c8i-flex(Intel Xeon 6, 상시 성능) 호스트 위에서 돌았습니다. 실험할 때는 이 차이를 통제 변수로 인식하지 못했고, 결과를 분석하면서 알게 됐습니다 — 실행 ②가 기대와 다르게 나온 가장 큰 이유입니다. 첫 발표 뒤 api · service 노드그룹을 c8i-flex.large로 바꿔 재실험했고(실행 ③, [결과](experiments.md#원인을-고치고-다시-돌린-결과--실행--최종-발표)), `team/infra/eks_launch_template.tf`의 c8i-flex.large가 이 교체 후 값입니다. 모니터링용 ops 노드는 t3.medium 그대로입니다.
 
 ## C. 의도적으로 다르게 두는 것 (독립변수)
 
