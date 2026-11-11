@@ -26,7 +26,7 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 | k8s 설치 | containerd·kubeadm/kubelet/kubectl을 **직접 하나씩 설치**(자동화 없이), master `kubeadm init` + worker `join` |
 | 삽질 | 설치 항목을 하나씩 빠뜨려 재설치 반복 — 다음날 정리 파일에도 누락 발견돼 다시 설치+정리 |
 
-> **교훈**: "다 한 것 같은데 하나씩 빼먹어서" 설치→재설치를 여러 번 반복했습니다. 결국 설치 절차를 직접 문서(`TROUBLESHOOTING.md`, `BACKUP-RESTORE.md`)로 고정해서 재현 가능하게 만들었습니다.
+> **교훈**: "다 한 것 같은데 하나씩 빼먹어서" 설치→재설치를 여러 번 반복했습니다. 결국 설치 절차를 직접 문서([`runbook/`](runbook/), `TROUBLESHOOTING.md`, `BACKUP-RESTORE.md`)로 고정해서 재현 가능하게 만들었습니다.
 
 ![kubectl get node 결과](images/kvm-nodes.png)
 > 4개 노드(master + worker1/2/3) 모두 Ready, Ubuntu 24.04.4 + containerd 2.2.4.
@@ -101,7 +101,8 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 클러스터를 여러 번 재구축하면서 겪은 문제들을 전부 기록해뒀습니다.
 
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — 네트워크·kubeadm·flannel·apiserver·ingress 등 구축 과정에서 마주친 문제 20가지(증상→원인→해결)
-- [`BACKUP-RESTORE.md`](BACKUP-RESTORE.md) — 스팟 호스트 EC2가 회수될 때를 대비한 AMI 백업/복원 절차, 그리고 복원 후 매번 반복되는 삽질(br_netfilter, DB/Redis IP 갱신 등)을 "무삽질"로 만든 영구화 방법
+- [`runbook/`](runbook/) — **처음부터 세울 때 실제로 쓰던 원본 실행 문서**(01~15번)와 AMI 없이 다시 세우는 순서
+- [`BACKUP-RESTORE.md`](BACKUP-RESTORE.md) — 스팟 호스트 EC2가 회수될 때를 대비한 AMI 백업 · qcow2 수동 백업/복원 절차, 그리고 복원 후 매번 반복되는 삽질(br_netfilter, DB/Redis IP 갱신 등)을 "무삽질"로 만든 영구화 방법
 
 이 중 진단 과정을 깊게 정리한 3건(flannel br_netfilter, 외부 접속 DNAT, 모니터링 타겟 다운)은 [`docs/incidents/`](../docs/incidents/)에 회고로 따로 남겼습니다.
 

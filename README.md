@@ -132,7 +132,7 @@ EKS는 노드를 늘려 더 많은 파드를 받아냈지만, 노드가 붙기 �
 
 ```
 ├── app/          # MSA 7개 서비스 + React 프론트 (코드·설계 결정·CI/CD)
-├── onprem/       # KVM·kubeadm 클러스터 구축, 매니페스트, 트러블슈팅 20건, 백업/복원
+├── onprem/       # KVM·kubeadm 클러스터 구축, 매니페스트, 트러블슈팅 20건, 백업/복원, 원본 실행 문서(runbook/)
 ├── monitoring/   # Prometheus·Grafana·Loki 구성, 온프레-EKS 비교 대시보드
 ├── k6/           # 부하 시나리오 2종 + 실행 결과
 ├── postgres/ redis/ userdata/   # 온프레용 DB·캐시, EC2 부트스트랩
@@ -146,7 +146,7 @@ EKS는 노드를 늘려 더 많은 파드를 받아냈지만, 노드가 붙기 �
 | 프로젝트 종료 후 복기 | [`docs/retrospective.md`](docs/retrospective.md) |
 | 공정 비교를 위한 통제변수 | [`docs/homogenization.md`](docs/homogenization.md) |
 | 트래픽 경로 · 작업 흐름 · 포트 | [`docs/architecture.md`](docs/architecture.md) |
-| 온프레 클러스터를 어떻게 세웠나 | [`onprem/README.md`](onprem/README.md) |
+| 온프레 클러스터를 어떻게 세웠나 | [`onprem/README.md`](onprem/README.md) · 단계별 원본 [`onprem/runbook/`](onprem/runbook/) |
 | 모니터링 구성 · 대시보드 | [`monitoring/README.md`](monitoring/README.md) |
 | 앱 구조 · 설계 결정 | [`app/README.md`](app/README.md) |
 
