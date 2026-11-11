@@ -1,6 +1,6 @@
 # k6 — 부하 테스트 시나리오
 
-Shoply 앱에 실제 유저 흐름(홈→상품→주문→결제)을 시뮬레이션해 온프레미스/EKS의 한계 RPS와 HPA 반응을 관찰하기 위한 k6 스크립트입니다. 두 가지 시나리오가 있습니다.
+Shoply 앱에 실제 유저 흐름(홈→상품→주문→결제)을 시뮬레이션해 온프레미스/EKS의 한계 지점과 HPA 반응을 관찰하기 위한 k6 스크립트입니다. 두 가지 시나리오가 있습니다.
 
 | 스크립트 | 목적 | 부하 프로파일 |
 |---|---|---|
@@ -66,8 +66,8 @@ PROMETHEUS_RW_URL=http://<모니터링서버-사설IP>:9090/api/v1/write \
 docker compose up
 
 # EKS 타겟
-BASE_URL=http://<EKS-ALB-URL> \
-PROMETHEUS_RW_URL=http://<모니터링서버-사설IP>:9090/api/v1/write \
+BASE_URL=http://<EKS-NLB-주소> \
+PROMETHEUS_RW_URL=http://<모니터링서버-사설IP>:9091/api/v1/write \
 docker compose up
 ```
 `docker-compose.yml`은 기본으로 `scripts/scenario.js`를 실행합니다. `scenario-wave.js`를 돌리려면 `command`를 바꾸거나 아래처럼 직접 실행합니다.

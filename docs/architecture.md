@@ -1,6 +1,6 @@
 # 아키텍처 상세 — 트래픽 경로·작업 흐름·포트
 
-전체 그림은 [루트 README](../README.md#2-인프라-구성도)의 구성도를 먼저 보고, 여기서 계층별 흐름을 깊게 봅니다.
+전체 그림은 [루트 README](../README.md#1-구성)의 구성도를 먼저 보고, 여기서 계층별 흐름을 깊게 봅니다.
 
 ## 사용자 요청 흐름 (트래픽 경로)
 
@@ -82,7 +82,7 @@ flowchart TB
   j --> k["호스트 iptables DNAT<br/>(80/443 + 메트릭 포트)"]
 ```
 
-## 실험 측정 흐름 (한계 RPS 찾기)
+## 실험 측정 흐름 (한계 지점 찾기)
 
 ```mermaid
 flowchart TB
@@ -119,7 +119,7 @@ flowchart TB
 | 포트 | 위치 | 용도 |
 |:---:|---|---|
 | 80 / 443 | 온프레 EC2(iptables DNAT) | 외부 진입 → MetalLB VIP |
-| 30080 | Nginx Ingress | NodePort 진입(양쪽 동일) |
+| 30080 | Nginx Ingress | NodePort (온프레는 MetalLB VIP, EKS는 NLB가 앞단) |
 | 4000~4005 | 앱 컨테이너 | gateway/product/inventory/order/payment/user |
 | 30400~30404 | 앱 메트릭 | 서비스별 `/metrics` NodePort |
 | 30800 | kube-state-metrics | 파드/노드/Pending 상태 |
@@ -127,5 +127,5 @@ flowchart TB
 | 38080/38081 | cAdvisor | worker1/2 (worker3 ops 노드는 toleration으로 추가 배치) |
 | 5432 / 6379 | PostgreSQL / Redis | 공용 DB·캐시 EC2 |
 | 9187 / 9121 | postgres_exporter / redis_exporter | DB·캐시 메트릭 |
-| 9090 / 9091 | Prometheus(온프레) / Prometheus(EKS 전용) | EKS 쪽은 k6 remote-write 수신만 담당 |
+| 9090 / 9091 | Prometheus(온프레) / Prometheus(EKS) | 각각 자기 쪽 exporter 스크랩 + k6 결과(remote-write) 수신 |
 | 3000 / 3100 / 3200 | Grafana / Loki / Tempo | 모니터링 스택, Tempo는 OTLP `4317`(gRPC)/`4318`(HTTP)도 사용 |
