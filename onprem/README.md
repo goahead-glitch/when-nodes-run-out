@@ -103,7 +103,7 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — 네트워크·kubeadm·flannel·apiserver·ingress 등 구축 과정에서 마주친 문제 20가지(증상→원인→해결)
 - [`BACKUP-RESTORE.md`](BACKUP-RESTORE.md) — 스팟 호스트 EC2가 회수될 때를 대비한 AMI 백업/복원 절차, 그리고 복원 후 매번 반복되는 삽질(br_netfilter, DB/Redis IP 갱신 등)을 "무삽질"로 만든 영구화 방법
 
-가장 인상적이었던 건 [13번 — kube-apiserver CrashLoopBackOff](TROUBLESHOOTING.md#13-kube-apiserver-crashloopbackoff--loopback127001-방화벽-drop-)입니다. `connection refused`가 아니라 `i/o timeout`이 뜨는 패턴으로 "방화벽이 loopback 트래픽까지 DROP하고 있다"는 걸 역추적해서 찾아냈습니다.
+이 중 진단 과정을 깊게 정리한 3건(flannel br_netfilter, 외부 접속 DNAT, 모니터링 타겟 다운)은 [`docs/incidents/`](../docs/incidents/)에 회고로 따로 남겼습니다.
 
 ## 스크립트
 

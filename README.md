@@ -68,14 +68,13 @@
 
 ## 5. 장애 사례와 해결
 
-클러스터를 수차례 재구축하며 겪은 **장애 20건을 전부 기록**했고([`onprem/TROUBLESHOOTING.md`](onprem/TROUBLESHOOTING.md)), 그중 진단 과정에 이야기가 있는 4건은 `증상 → 로그 → 원인 → 왜 그렇게 판단했는가 → 해결 → 재발 방지`로 깊게 회고했습니다.
+클러스터를 수차례 재구축하며 겪은 **장애 20건을 전부 기록**했고([`onprem/TROUBLESHOOTING.md`](onprem/TROUBLESHOOTING.md)), 그중 진단 과정에 이야기가 있는 3건은 `증상 → 로그 → 원인 → 왜 그렇게 판단했는가 → 해결 → 재발 방지`로 깊게 회고했습니다.
 
 | 장애 | 진단의 핵심 |
 |---|---|
-| [kube-apiserver 먹통 — loopback 방화벽 DROP](docs/incidents/01-kube-apiserver-loopback-firewall.md) | `refused`(리스너 없음)와 `timeout`(패킷이 버려짐)의 차이로 방화벽을 역추적 |
-| [flannel 전멸 — br_netfilter 미로드](docs/incidents/02-flannel-br-netfilter.md) | 에러 두 개의 인과관계를 따라 커널 계층까지 내려감 |
-| [외부 접속 불가 — DNAT 누락/불일치](docs/incidents/03-dnat-external-access.md) | curl 실패 "방식"으로 원인을 3갈래 분류하는 진단 트리 + 광역 DNAT가 만든 2차 장애 |
-| [모니터링 타겟 다운](docs/incidents/04-monitoring-targets-down.md) | "일부만 살아있다"는 단서로 고장난 계층 특정 — 조용한 실패는 체크리스트로 잡는다 |
+| [flannel 전멸 — br_netfilter 미로드](docs/incidents/01-flannel-br-netfilter.md) | 에러 두 개의 인과관계를 따라 커널 계층까지 내려감 |
+| [외부 접속 불가 — DNAT 누락/불일치](docs/incidents/02-dnat-external-access.md) | curl 실패 "방식"으로 원인을 3갈래 분류하는 진단 트리 + 광역 DNAT가 만든 2차 장애 |
+| [모니터링 타겟 다운](docs/incidents/03-monitoring-targets-down.md) | "일부만 살아있다"는 단서로 고장난 계층 특정 — 조용한 실패는 체크리스트로 잡는다 |
 
 ## 6. 배운 점
 
