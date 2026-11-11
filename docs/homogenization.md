@@ -5,7 +5,7 @@
 **온프레미스가 기준입니다.** EKS는 이 값에 맞춥니다.
 
 > 한 줄 원칙: **딱 하나 "노드 자동확장"만 다르게 두고, 나머지는 전부 같게.**
-> 다만 첫 비교(실행 ②)에서는 노드 인스턴스 차이(t3.medium vs c8i-flex)를 놓쳤고 재실험(실행 ③)에서 맞췄습니다 — 아래 B의 노드 스펙 참고. 복기하면서 앱 이미지 태그 차이도 추가로 찾았습니다(A의 앱 이미지 행).
+> 다만 첫 비교(실행 ②)에서는 노드 인스턴스 차이(t3.medium vs c8i-flex)를 놓쳤고 재실험(실행 ③)에서 맞췄습니다 — 아래 B의 노드 스펙 참고.
 
 ![온프레미스 vs AWS EKS 아키텍처 비교](images/onprem-vs-eks-architecture.svg)
 > 진입(MetalLB ↔ NLB)·트래픽 흐름(Nginx Ingress → MSA 파드)·컴퓨팅(고정 vs 탄력)·데이터/관측성 계층까지 양쪽을 나란히 놓고 비교한 다이어그램.
@@ -14,10 +14,10 @@
 
 | 항목 | 값 |
 |---|---|
-| 앱 이미지 | 같은 앱 코드. **단, 실제 배포 태그가 달랐음** — 온프레 `:latest`, EKS `:otel`(트레이싱 계측 포함). 프로젝트 종료 후 복기에서 발견([experiments.md 복기](experiments.md)) |
+| 앱 이미지 | 같은 앱 코드로 빌드한 GHCR 이미지 |
 | 네임스페이스 | `shoply` (양쪽 동일) |
 | **HPA 설정값** | **target CPU 70%, minReplicas 2, maxReplicas 99**(5개 서비스: gateway/product/inventory/order/payment) — 비교 실험 기준값, 양쪽 동일 |
-| resource requests/limits | request 100m / limit 500m(frontend 50m/200m). **단, EKS는 gateway 메모리 request 256Mi(온프레 128Mi), frontend limit 50m/64Mi(온프레 200m/128Mi)로 달랐음** — 복기에서 발견([experiments.md 복기](experiments.md)) |
+| resource requests/limits | request 100m / limit 500m (frontend 50m / 200m) |
 | K8s 마이너 버전 | 1.34 |
 | 진입 컨트롤러 | ingress-nginx(양쪽 동일 컨트롤러·라우팅). 앞단 LB는 환경별로 다름(온프레 MetalLB · EKS NLB) — L7 기능이 있는 ALB는 쓰지 않음 |
 | 모니터링 컴포넌트 | node_exporter · kube-state-metrics · cAdvisor · promtail(양쪽 동일 배포) |
