@@ -10,7 +10,7 @@
 | 컴포넌트 | 이미지 | 역할 |
 |---|---|---|
 | Prometheus | `prom/prometheus` (`:9090`) | 온프레미스 클러스터 메트릭 스크랩 + k6 remote-write 수신 |
-| Prometheus-EKS | `prom/prometheus` (`:9091`) | EKS 쪽은 인증 없이 자체 스크랩이 어려워, **k6 remote-write 수신 전용**으로만 사용 |
+| Prometheus-EKS | `prom/prometheus` (`:9091`) | EKS 클러스터 메트릭 수집(워커 노드의 kube-state-metrics·node_exporter·앱 메트릭·cAdvisor) + EKS k6 결과 수신 |
 | Loki | `grafana/loki:2.9.8` (`:3100`) | 클러스터 로그·이벤트 저장(Promtail·event-exporter가 push) |
 | Tempo | `grafana/tempo:2.6.1` (`:3200`, OTLP `:4317`/`:4318`) | 앱에서 온 OpenTelemetry 트레이스 저장 + 서비스그래프/스팬 메트릭 생성 |
 | Grafana | `grafana/grafana` (`:3000`) | 위 4개를 데이터소스로 묶어 대시보드 제공 |
@@ -51,7 +51,7 @@ docker compose ps
 ```
 
 - Prometheus: `http://<모니터링EC2-IP>:9090`
-- Grafana: `http://<모니터링EC2-IP>:3000` (`admin` / `admin1234`)
+- Grafana: `http://<모니터링EC2-IP>:3000` (`admin` / `admin1234` — 실습용 기본값, 외부에 노출할 땐 반드시 변경)
 - IP 변경(재구축) 후 설정만 반영: `curl -X POST http://localhost:9090/-/reload`
 
 ## 보안그룹 (모니터링 EC2)
@@ -70,9 +70,10 @@ docker compose ps
 | `grafana-dashboard-onprem.json` | 온프레미스 실험용 메인 대시보드 |
 | `grafana-dashboard-eks.json` | EKS 쪽 대시보드 |
 | `grafana-dashboard-compare.json` | 온프레 vs EKS 비교 뷰 — 노드 수·Running/Pending·노드별 CPU를 좌우로 나란히 표시 |
-| `grafana-dashboard-recommend.json` / `grafana-dashboard-load.json` | Grafana 추천/부하 관련 대시보드 |
+| `grafana-dashboard-load.json` | 부하 테스트(k6) 비교 — VU·RPS·실패율을 온프레/EKS 좌우로 |
+| `grafana-dashboard-recommend.json` | 온프레/EKS 토글 — 데이터소스 변수(`$ds`)로 한 화면에서 전환 |
 
-![온프레 vs EKS 비교 대시보드](../docs/images/onprem-eks-comparison-spike.png)
+![온프레 vs EKS 비교 대시보드](../docs/images/run2-compare-300vu-hold.png)
 > `grafana-dashboard-compare.json`으로 300 VU 부하 중 캡처 — 왼쪽 온프레는 Pending이 쌓인 채 유지, 오른쪽 EKS는 노드가 늘어나지만 Pending도 함께 스파이크쳤다가 뒤늦게 해소됨.
 
 ## 트러블슈팅에서 배운 것

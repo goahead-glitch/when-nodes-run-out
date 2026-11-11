@@ -1,6 +1,8 @@
 # k6 — 부하 테스트 시나리오
 
-Shoply 앱에 실제 유저 흐름(홈→상품→주문→결제)을 시뮬레이션해 온프레미스/EKS의 한계 RPS와 HPA 반응을 관찰하기 위한 k6 스크립트입니다. 두 가지 시나리오가 있습니다.
+Shoply 앱에 실제 유저 흐름(홈→상품→주문→결제)을 시뮬레이션해 온프레미스/EKS의 한계 지점과 HPA 반응을 관찰하기 위한 k6 스크립트입니다. 두 가지 시나리오가 있습니다.
+
+> 이 폴더는 실험 전에 온프레가 제대로 동작하는지 확인하려고 본인이 만든 기본 스크립트입니다. 본 부하 테스트의 설계 · 실행은 팀원이 맡았습니다([`../team/cicd-k6/`](../team/cicd-k6/)).
 
 | 스크립트 | 목적 | 부하 프로파일 |
 |---|---|---|
@@ -22,15 +24,15 @@ setup() - 테스트 시작 전 1회만 로그인 (test1@shoply.com) → JWT 토�
 
 ## 실행 결과 예시 (scenario.js, 1800 VUs)
 
-![k6 실행 결과](images/k6-run-result.png)
+![k6 실행 결과](images/run1-k6-1800vu.png)
 > 55만여 건 요청, 결제 실패율 93%(재고 소진이 아니라 응답 타임아웃 기준 — p95 레이턴시 5.73초까지 치솟은 상태) — `http_req_duration p(95)<3000` 임계값을 초과해 테스트가 실패로 종료된 사례. 노드 자원이 한계에 도달했을 때 결제 단계부터 무너지는 걸 확인했습니다.
 
 ## 실행 결과 예시 (scenario-wave.js, 300 VUs — 온프레 vs EKS)
 
 동일한 웨이브 부하(최대 300 VU)를 온프레·EKS 양쪽에 각각 걸어 k6 자체 결과를 비교했습니다. 온프레는 checks_failed 0.09%(65,849 iterations), EKS는 0.32%(66,876 iterations)로 EKS 쪽 실패율이 오히려 더 높게 나온 구간도 있었습니다 — Karpenter가 새 노드를 붙이는 동안에는 EKS도 순간적으로 여유가 없었기 때문입니다(Pending 추이는 [`../docs/experiments.md`](../docs/experiments.md) 참고).
 
-![k6 실행 결과 — 온프레](images/scenario-wave-300vu-onprem.png)
-![k6 실행 결과 — EKS](images/scenario-wave-300vu-eks.png)
+![k6 실행 결과 — 온프레](images/run2-k6-result-onprem.png)
+![k6 실행 결과 — EKS](images/run2-k6-result-eks.png)
 
 ## 테스트 전 재고 리셋
 
@@ -66,8 +68,8 @@ PROMETHEUS_RW_URL=http://<모니터링서버-사설IP>:9090/api/v1/write \
 docker compose up
 
 # EKS 타겟
-BASE_URL=http://<EKS-ALB-URL> \
-PROMETHEUS_RW_URL=http://<모니터링서버-사설IP>:9090/api/v1/write \
+BASE_URL=http://<EKS-NLB-주소> \
+PROMETHEUS_RW_URL=http://<모니터링서버-사설IP>:9091/api/v1/write \
 docker compose up
 ```
 `docker-compose.yml`은 기본으로 `scripts/scenario.js`를 실행합니다. `scenario-wave.js`를 돌리려면 `command`를 바꾸거나 아래처럼 직접 실행합니다.

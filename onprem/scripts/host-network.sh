@@ -40,7 +40,7 @@ echo "▶ ip_forward=1 (영구 적용)"
 # ── DNAT (싹 정리 후 재적용) ─────────────────────────────────────
 sudo iptables -t nat -F PREROUTING
 # 사이트 진입: EIP 80/443 → MetalLB VIP. ★ -d $HOST_IP 필수 (안 붙이면 워커의 ghcr.io pull(443)까지
-#   가로채서 ImagePullBackOff — 11_트러블슈팅 §20). HOST_IP는 위에서 hostname -I로 감지.
+#   가로채서 ImagePullBackOff — onprem/TROUBLESHOOTING.md 20번). HOST_IP는 위에서 hostname -I로 감지.
 sudo iptables -t nat -A PREROUTING -d $HOST_IP -p tcp --dport 80  -j DNAT --to-destination $VIP:80
 sudo iptables -t nat -A PREROUTING -d $HOST_IP -p tcp --dport 443 -j DNAT --to-destination $VIP:443
 for p in 30400 30401 30402 30403 30404 30800; do                                                  # 앱메트릭+kube-state

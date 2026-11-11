@@ -2,9 +2,11 @@ global:
   scrape_interval: 15s
   scrape_timeout: 10s
 
-# k6 remote-write로 들어오는 메트릭만 받는다 (--web.enable-remote-write-receiver).
-# EKS 클러스터 자체 스크랩(kube-state-metrics/node-exporter/kubelet/cadvisor)은 하지 않음
-# → kubeconfig/token 인증이 필요 없어 AMI 복원할 때마다 깨질 일이 없다.
+# ⚠️ 이 파일은 초기 스텁입니다 (k6 remote-write 수신 + 자기 자신만 수집).
+# 실제 비교 실험 때는 EKS 워커 노드에 노출한 exporter를 이 Prometheus가 직접 수집했습니다
+#   - kube-state-metrics NodePort 30800, node_exporter 9100, 앱 메트릭 30400~30404, cAdvisor
+#   (EKS 쪽 exporter 구성: team/infra/values/values.yaml, team/eks-service/15-node-exporter-patch.yaml)
+# 그 타겟 설정(EKS 워커 공인 IP)은 레포에 남아 있지 않습니다.
 scrape_configs:
   - job_name: prometheus-eks
     static_configs:

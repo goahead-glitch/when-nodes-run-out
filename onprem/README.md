@@ -9,7 +9,7 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 
 | EC2 | 역할 |
 |---|---|
-| c8i.2xlarge (스팟) | k8s 호스트 — KVM VM 4대 + 호스트 Nginx/iptables |
+| c8i-flex.2xlarge (스팟) | k8s 호스트 — KVM VM 4대 + 호스트 Nginx/iptables |
 | PostgreSQL EC2 | DB (Docker, PostgreSQL 16, `max_connections=300`) |
 | Redis EC2 | 캐시 (Docker, Redis 7) |
 
@@ -26,7 +26,7 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 | k8s 설치 | containerd·kubeadm/kubelet/kubectl을 **직접 하나씩 설치**(자동화 없이), master `kubeadm init` + worker `join` |
 | 삽질 | 설치 항목을 하나씩 빠뜨려 재설치 반복 — 다음날 정리 파일에도 누락 발견돼 다시 설치+정리 |
 
-> **교훈**: "다 한 것 같은데 하나씩 빼먹어서" 설치→재설치를 여러 번 반복했습니다. 결국 설치 절차를 직접 문서(`TROUBLESHOOTING.md`, `BACKUP-RESTORE.md`)로 고정해서 재현 가능하게 만들었습니다.
+> **교훈**: "다 한 것 같은데 하나씩 빼먹어서" 설치→재설치를 여러 번 반복했습니다. 결국 설치 절차를 직접 문서([`runbook/`](runbook/), `TROUBLESHOOTING.md`, `BACKUP-RESTORE.md`)로 고정해서 재현 가능하게 만들었습니다.
 
 ![kubectl get node 결과](images/kvm-nodes.png)
 > 4개 노드(master + worker1/2/3) 모두 Ready, Ubuntu 24.04.4 + containerd 2.2.4.
@@ -53,8 +53,8 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 ![ingress-nginx LoadBalancer](images/ingress-nginx.png)
 > MetalLB가 ingress-nginx-controller 서비스에 EXTERNAL-IP(192.168.122.240)를 할당 — 이 VIP로 호스트 DNAT가 트래픽을 넘깁니다.
 
-- **EC2 iptables DNAT** — KVM VM은 공인 IP가 없어 `EC2:30080 → DNAT → master_VM:30080` 식으로 호스트가 NAT 포워딩합니다.
-- **iptables DNAT 포워딩** — VM 내부 NodePort 메트릭을 외부 Prometheus로 노출(30400~30404, 30800, 39101/39102 등).
+- **EC2 iptables DNAT** — KVM VM은 공인 IP가 없어 `EC2:80/443 → DNAT → MetalLB VIP(192.168.122.240) → Nginx Ingress` 식으로 호스트가 NAT 포워딩합니다.
+- **iptables DNAT 포워딩** — VM 내부 NodePort 메트릭을 외부 Prometheus로 노출(30400~30404, 30800, 39101~39103, 38080~38081).
 - 스크립트: [`scripts/host-network.sh`](scripts/host-network.sh) — `ip_forward`·DNAT·FORWARD를 호스트 사설IP 자동 감지로 한 번에 설정.
 
 ## 서비스 배포 — k8s 매니페스트
@@ -76,11 +76,11 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 | 항목 | 값 | 이유 |
 |---|---|---|
 | resource | request **100m** / limit **500m**(frontend 50m/200m) | request를 작게 둬서 HPA가 민감하게 발동하도록 |
-| HPA | target CPU **70%**, min **2** / max **10**, 60초당 +2개 | 노드 자원 한계(Pending)까지 파드가 늘어나는 걸 관찰하기 위해 상한을 넉넉히 잡음 |
+| HPA | target CPU **70%**, min **2** / max **99**, 60초당 +2개 | 파드 수를 HPA가 아니라 노드 자원이 제한하도록 상한을 풀어둠 (초기 동작 확인 땐 기본값 10) |
 | 배치 | soft nodeAffinity(worker1/worker2) | 초기 고정 배치, HPA로 늘어난 파드는 자유 배치 |
 | 인증 | GHCR imagePullSecret | private 이미지 pull |
 
-> **HPA 조정 시행착오**: 처음엔 각 서비스 replicas 2개 + HPA max를 낮게 제한해뒀습니다. 그런데 부하를 줘도 파드가 많이 안 늘고 CPU·메모리도 크게 안 올랐습니다. → replicas 1개 시작 + max를 넉넉히 풀어서, 노드 한계까지 파드가 늘어나 Pending이 관찰되도록 바꿨습니다(max를 낮게 제한하면 노드가 안 터져서 "고정 자원의 한계"를 못 보여주기 때문).
+> **HPA 조정 시행착오**: 처음엔 기본값인 HPA max 10으로 온프레가 잘 동작하는지 확인했습니다. 그런데 리소스 request를 낮게 둔 데다 부하가 세서 파드가 상한에 너무 빨리 찼고, 노드 한계(Pending)까지 가기 전에 HPA가 먼저 막혔습니다. 그래서 **Deployment replicas 1개로 시작 + HPA min 2 / max 99**로 상한을 풀었습니다(HPA min이 2라 적용 후에는 서비스마다 최소 2개로 유지). 아래 HPA 캡처(MAXPODS 10)는 상한을 풀기 전 단계입니다.
 
 자세한 배포 순서·체크리스트는 [`k8s/README.md`](k8s/README.md) 참고.
 
@@ -92,18 +92,19 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 ![부하 시 파드 목록](images/pods-under-load.png)
 > 실제로 gateway/product 파드 수가 늘어나는 모습(생성된 지 몇 분 안 된 파드들이 다수 보임) — HPA가 의도대로 작동함을 확인.
 
-**EKS와의 직접 비교**: Grafana에 온프레·EKS 양쪽 Prometheus를 동시에 붙인 반반 비교 대시보드로 같은 부하(최대 300 VU)를 걸어봤습니다. 온프레는 노드 4개 고정 상태라 Pending이 6\~7개까지 쌓여 수 분간 유지된 반면, EKS는 Karpenter가 노드를 3→8개로 늘렸음에도 Pending이 최대 12개까지 두 차례 스파이크친 뒤에야 해소됐습니다 — 자동확장이 있어도 노드 프로비저닝 시간(60\~90초) 동안은 Pending이 쌓인다는 걸 눈으로 확인한 셈입니다. 자세한 수치·부하 테스트 영상은 [`../docs/experiments.md`](../docs/experiments.md) 참고.
+**EKS와의 직접 비교**: Grafana에 온프레·EKS 양쪽 Prometheus를 동시에 붙인 반반 비교 대시보드로 같은 부하(최대 300 VU)를 걸어봤습니다. 온프레는 노드 4개 고정 상태라 Pending이 6\~7개까지 쌓여 수 분간 유지된 반면, EKS는 Karpenter가 노드를 3→8개로 늘렸음에도 Pending이 최대 12개까지 두 차례 스파이크친 뒤에야 해소됐습니다 — 노드가 3개에서 8개가 되기까지 약 6분 동안 계단식으로 늘었고, 자동확장이 있어도 새 노드가 준비되기 전까지는 Pending이 쌓인다는 걸 눈으로 확인한 셈입니다. 원인은 EKS 실험 노드가 이전 세대 t3.medium이었던 장비 차이였고, c8i-flex.large로 바꿔 재실험했습니다. 자세한 수치·부하 테스트 영상은 [`../docs/experiments.md`](../docs/experiments.md) 참고.
 
-![온프레미스 vs EKS 비교 — 부하 유지 구간](../docs/images/onprem-eks-comparison-spike.png)
+![온프레미스 vs EKS 비교 — 부하 유지 구간](../docs/images/run2-compare-300vu-hold.png)
 
 ## 트러블슈팅 & 복구
 
 클러스터를 여러 번 재구축하면서 겪은 문제들을 전부 기록해뒀습니다.
 
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — 네트워크·kubeadm·flannel·apiserver·ingress 등 구축 과정에서 마주친 문제 20가지(증상→원인→해결)
-- [`BACKUP-RESTORE.md`](BACKUP-RESTORE.md) — 스팟 호스트 EC2가 회수될 때를 대비한 AMI 백업/복원 절차, 그리고 복원 후 매번 반복되는 삽질(br_netfilter, DB/Redis IP 갱신 등)을 "무삽질"로 만든 영구화 방법
+- [`runbook/`](runbook/) — **처음부터 세울 때 실제로 쓰던 실행 문서**(구축 순서대로 01~06번)와 AMI 없이 다시 세우는 순서
+- [`BACKUP-RESTORE.md`](BACKUP-RESTORE.md) — 스팟 호스트 EC2가 회수될 때를 대비한 AMI 백업 · qcow2 수동 백업/복원 절차, 그리고 복원 후 매번 반복되는 삽질(br_netfilter, DB/Redis IP 갱신 등)을 "무삽질"로 만든 영구화 방법
 
-가장 인상적이었던 건 [13번 — kube-apiserver CrashLoopBackOff](TROUBLESHOOTING.md#13-kube-apiserver-crashloopbackoff--loopback127001-방화벽-drop-)입니다. `connection refused`가 아니라 `i/o timeout`이 뜨는 패턴으로 "방화벽이 loopback 트래픽까지 DROP하고 있다"는 걸 역추적해서 찾아냈습니다.
+이 중 진단 과정을 깊게 정리한 3건(flannel br_netfilter, 외부 접속 DNAT, 모니터링 타겟 다운)은 [`docs/incidents/`](../docs/incidents/)에 회고로 따로 남겼습니다.
 
 ## 스크립트
 

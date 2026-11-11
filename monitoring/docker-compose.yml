@@ -17,7 +17,7 @@ services:
       - '--web.enable-admin-api'
       - '--enable-feature=exemplar-storage'               # 스냅샷 API 활성화
 
-  # ── Prometheus (EKS 전용) — k6 remote-write 수신만 담당. EKS 클러스터 자체 스크랩 없음(인증 불필요) ──
+  # ── Prometheus (EKS 전용) — EKS 워커 노드의 exporter 수집 + EKS k6 remote-write 수신 ──
   prometheus-eks:
     image: prom/prometheus:latest
     container_name: prometheus-eks

@@ -9,7 +9,7 @@
 
   <!-- 제목 -->
   <text x="780" y="44" text-anchor="middle" font-size="26" font-weight="700" fill="#24292f">온프레미스 vs AWS EKS — 아키텍처 비교</text>
-  <text x="780" y="72" text-anchor="middle" font-size="14" fill="#57606a">같은 앱 · 같은 설정 — 단 하나의 변수(노드 자동확장)만 다르다</text>
+  <text x="780" y="72" text-anchor="middle" font-size="14" fill="#57606a">같은 앱 · 같은 설정 — 의도한 변수는 노드 자동확장 (놓쳤던 인스턴스 차이는 재실험에서 맞춤)</text>
 
   <!-- 좌우 패널 -->
   <rect x="30" y="96" width="690" height="744" rx="14" fill="#eef5fc" stroke="#b6d4f0"/>
@@ -21,9 +21,9 @@
   <text x="780" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">진입</text>
   <text x="780" y="214" text-anchor="middle" font-size="11" fill="#57606a">동일 LB 추상화</text>
   <text x="780" y="352" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">서비스</text>
-  <text x="780" y="370" text-anchor="middle" font-size="11" fill="#57606a">동일 매니페스트</text>
+  <text x="780" y="370" text-anchor="middle" font-size="11" fill="#57606a">같은 앱 코드</text>
   <text x="780" y="562" text-anchor="middle" font-size="14" font-weight="700" fill="#c0392b">컴퓨팅</text>
-  <text x="780" y="580" text-anchor="middle" font-size="11" font-weight="700" fill="#c0392b">★ 단 하나의 변수</text>
+  <text x="780" y="580" text-anchor="middle" font-size="11" font-weight="700" fill="#c0392b">★ 의도한 변수</text>
   <text x="780" y="742" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">데이터</text>
   <text x="780" y="760" text-anchor="middle" font-size="11" fill="#57606a">엔진 동일</text>
 
@@ -61,8 +61,8 @@
     <rect x="512" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="553" y="329" text-anchor="middle">user</text>
     <rect x="600" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="641" y="329" text-anchor="middle">frontend</text>
   </g>
-  <text x="375" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 동일 이미지(같은 SHA) · 네임스페이스 shoply</text>
-  <text x="375" y="396" text-anchor="middle" font-size="12" fill="#57606a">HPA 동일 — target CPU 70% · min 2 / max 10 (5개 서비스)</text>
+  <text x="375" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 같은 앱 코드 · 네임스페이스 shoply</text>
+  <text x="375" y="396" text-anchor="middle" font-size="12" fill="#57606a">HPA 동일 — target CPU 70% · min 2 / max 99 (5개 서비스)</text>
   <text x="375" y="420" text-anchor="middle" font-size="12" fill="#57606a">재고 SELECT FOR UPDATE(행 잠금) — 초과판매 방지 로직도 동일</text>
 
   <!-- ═══ 서비스 (EKS) ═══ -->
@@ -77,9 +77,9 @@
     <rect x="1322" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1363" y="329" text-anchor="middle">user</text>
     <rect x="1410" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1451" y="329" text-anchor="middle">frontend</text>
   </g>
-  <text x="1185" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 동일 이미지(같은 SHA) · 네임스페이스 shoply</text>
-  <text x="1185" y="396" text-anchor="middle" font-size="12" fill="#57606a">HPA 동일 — target CPU 70% · min 2 / max 10 (5개 서비스)</text>
-  <text x="1185" y="420" text-anchor="middle" font-size="12" fill="#57606a">동일 매니페스트 공유 — 온프레미스가 동일화 기준 제공</text>
+  <text x="1185" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 같은 앱 코드 · 네임스페이스 shoply</text>
+  <text x="1185" y="396" text-anchor="middle" font-size="12" fill="#57606a">HPA 동일 — target CPU 70% · min 2 / max 99 (5개 서비스)</text>
+  <text x="1185" y="420" text-anchor="middle" font-size="12" fill="#57606a">HPA · 리소스 기준값은 온프레미스가 제공</text>
 
   <!-- ═══ 컴퓨팅 (온프레) ═══ -->
   <rect x="60" y="472" width="630" height="208" rx="10" fill="#ffffff" stroke="#1f5fa8" stroke-width="2"/>
@@ -103,16 +103,16 @@
   <text x="1185" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="#b25e00">탄력 — Managed Node Group + Karpenter (노드 자동확장)</text>
   <g font-size="12" fill="#24292f">
     <rect x="886" y="516" width="240" height="60" rx="8" fill="#fdf3e7" stroke="#e0b57e"/>
-    <text x="1006" y="540" text-anchor="middle" font-weight="700">고정 워커 노드그룹</text>
-    <text x="1006" y="560" text-anchor="middle" font-size="11" fill="#57606a">c8i-flex.large — 온프레와 동일 사양</text>
+    <text x="1006" y="540" text-anchor="middle" font-weight="700">워커 노드 2vCPU/4GB</text>
+    <text x="1006" y="560" text-anchor="middle" font-size="11" fill="#57606a">② t3.medium → ③ c8i-flex.large</text>
     <line x1="1126" y1="546" x2="1178" y2="546" stroke="#b25e00" stroke-width="2" marker-end="url(#arrow)"/>
     <rect x="1180" y="516" width="300" height="60" rx="8" fill="#fff8ee" stroke="#e0b57e" stroke-dasharray="6 3"/>
     <text x="1330" y="540" text-anchor="middle" font-weight="700">+ 새 노드 자동 추가</text>
-    <text x="1330" y="560" text-anchor="middle" font-size="11" fill="#57606a">Karpenter — 프로비저닝 60~90초</text>
+    <text x="1330" y="560" text-anchor="middle" font-size="11" fill="#57606a">Karpenter — 실행 ② 3→8대(약 6분)</text>
   </g>
-  <text x="1185" y="606" text-anchor="middle" font-size="12" fill="#57606a">수요에 따라 노드 증설 · ops 노드 분리 — Auto Mode 배제, 사양 고정으로 공정성 유지</text>
+  <text x="1185" y="606" text-anchor="middle" font-size="12" fill="#57606a">⚠ 처음엔 숫자만 맞춤(t3 이전 세대) → 원인 확인 후 c8i-flex로 교체</text>
   <rect x="930" y="626" width="510" height="36" rx="8" fill="#fef8e7" stroke="#e6c86e"/>
-  <text x="1185" y="649" text-anchor="middle" font-size="13" font-weight="700" fill="#8a6d00">Pending이 먼저 튀지만 → 노드 증설이 끝나면 해소 (스파이크 후 회복)</text>
+  <text x="1185" y="649" text-anchor="middle" font-size="13" font-weight="700" fill="#8a6d00">실행 ② (t3): Pending 최대 12 · 실패율 0.32% (온프레 0.09%)</text>
 
   <!-- ═══ 데이터 (온프레) ═══ -->
   <rect x="60" y="708" width="300" height="80" rx="10" fill="#ffffff" stroke="#8ab4d8"/>
@@ -145,7 +145,7 @@
     <text x="240" y="968" text-anchor="middle" font-size="11" fill="#57606a">온프레 스크랩 + k6 remote-write</text>
     <rect x="435" y="918" width="330" height="72" rx="10" fill="#ffffff" stroke="#b3a5dd"/>
     <text x="600" y="946" text-anchor="middle" font-weight="700">Prometheus :9091</text>
-    <text x="600" y="968" text-anchor="middle" font-size="11" fill="#57606a">EKS 쪽 k6 remote-write 수신 전용</text>
+    <text x="600" y="968" text-anchor="middle" font-size="11" fill="#57606a">EKS exporter 스크랩 (kube-state·node·앱·cAdvisor)</text>
     <rect x="795" y="918" width="330" height="72" rx="10" fill="#ffffff" stroke="#b3a5dd"/>
     <text x="960" y="946" text-anchor="middle" font-weight="700">Grafana</text>
     <text x="960" y="968" text-anchor="middle" font-size="11" fill="#57606a">반반 비교 대시보드 (온프레 ◀ | ▶ EKS)</text>

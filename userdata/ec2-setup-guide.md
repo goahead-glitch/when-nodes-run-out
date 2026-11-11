@@ -23,7 +23,7 @@
 | 인스턴스 타입 | t3.medium |
 | AMI | Ubuntu 24.04 LTS |
 | 스토리지 | 30GB gp3 |
-| 보안그룹 | 5432 (c8i.2xlarge SG), 9187 (Monitoring SG), 22 (Admin IP) |
+| 보안그룹 | 5432 (c8i-flex.2xlarge SG), 9187 (Monitoring SG), 22 (Admin IP) |
 | 퍼블릭 IP | 필요 (파일 전송용 SCP, 이후 보안그룹으로 제한) |
 | 키페어 | aws-3tier-keypair.pem |
 
@@ -31,7 +31,7 @@
 
 > AWS 콘솔 → EC2 인스턴스 시작 → 고급 세부 정보 → 사용자 데이터
 >
-> **파일 참고:** `msa_shoply/infra/userdata/postgresql.sh` 내용을 붙여넣기
+> **파일 참고:** [`userdata/postgresql.sh`](postgresql.sh) 내용을 붙여넣기
 
 > 완료 확인: `cat /var/log/user-data.log`
 
@@ -46,13 +46,13 @@
 | 인스턴스 타입 | t3.micro |
 | AMI | Ubuntu 24.04 LTS |
 | 스토리지 | 8GB gp3 |
-| 보안그룹 | 6379 (c8i.2xlarge SG 또는 Worker Node SG), 9121 (Monitoring SG), 22 (Admin IP) |
+| 보안그룹 | 6379 (c8i-flex.2xlarge SG 또는 Worker Node SG), 9121 (Monitoring SG), 22 (Admin IP) |
 | 퍼블릭 IP | 필요 (파일 전송용 SCP) |
 | 키페어 | aws-3tier-keypair.pem |
 
 ### User Data (EC2 생성 시 붙여넣기)
 
-> **파일 참고:** `msa_shoply/infra/userdata/redis.sh` 내용을 붙여넣기
+> **파일 참고:** [`userdata/redis.sh`](redis.sh) 내용을 붙여넣기
 
 ---
 
@@ -63,10 +63,10 @@
 ### PostgreSQL EC2로 전송
 
 ```bash
-# 로컬 Mac에서 실행
-# infra/postgres/ 폴더 전체를 서버로 전송
+# 로컬에서 실행 (이 저장소 루트에서)
+# postgres/ 폴더 전체를 서버로 전송
 scp -i ~/key/aws-3tier-keypair.pem -r \
-  /Users/kimminseo/shopping_k8s/msa_shoply/infra/postgres \
+  ./postgres \
   ubuntu@<PostgreSQL-EC2-공인IP>:~/
 ```
 
@@ -82,9 +82,9 @@ scp -i ~/key/aws-3tier-keypair.pem -r \
 ### Redis EC2로 전송
 
 ```bash
-# 로컬 Mac에서 실행
+# 로컬에서 실행 (이 저장소 루트에서)
 scp -i ~/key/aws-3tier-keypair.pem -r \
-  /Users/kimminseo/shopping_k8s/msa_shoply/infra/redis \
+  ./redis \
   ubuntu@<Redis-EC2-공인IP>:~/
 ```
 
@@ -200,7 +200,7 @@ docker exec -it shoply-redis redis-cli DBSIZE
 
 | 방향 | 포트 | 소스 | 이유 |
 |------|------|------|------|
-| 인바운드 | 5432 | c8i.2xlarge SG | k8s 파드 → DB |
+| 인바운드 | 5432 | c8i-flex.2xlarge SG | k8s 파드 → DB |
 | 인바운드 | 9187 | Monitoring SG | postgresql_exporter |
 | 인바운드 | 9100 | Monitoring SG | node_exporter |
 | 인바운드 | 22 | Admin IP/32 | SSH |
@@ -210,7 +210,7 @@ docker exec -it shoply-redis redis-cli DBSIZE
 
 | 방향 | 포트 | 소스 | 이유 |
 |------|------|------|------|
-| 인바운드 | 6379 | c8i.2xlarge SG | k8s 파드 → Redis |
+| 인바운드 | 6379 | c8i-flex.2xlarge SG | k8s 파드 → Redis |
 | 인바운드 | 9121 | Monitoring SG | redis_exporter |
 | 인바운드 | 9100 | Monitoring SG | node_exporter |
 | 인바운드 | 22 | Admin IP/32 | SSH |
