@@ -108,11 +108,11 @@
     <line x1="1126" y1="546" x2="1178" y2="546" stroke="#b25e00" stroke-width="2" marker-end="url(#arrow)"/>
     <rect x="1180" y="516" width="300" height="60" rx="8" fill="#fff8ee" stroke="#e0b57e" stroke-dasharray="6 3"/>
     <text x="1330" y="540" text-anchor="middle" font-weight="700">+ 새 노드 자동 추가</text>
-    <text x="1330" y="560" text-anchor="middle" font-size="11" fill="#57606a">Karpenter — ② 3→8대(약 6분) · ③ 9대</text>
+    <text x="1330" y="560" text-anchor="middle" font-size="11" fill="#57606a">Karpenter — 실행 ② 3→8대(약 6분)</text>
   </g>
   <text x="1185" y="606" text-anchor="middle" font-size="12" fill="#57606a">⚠ 처음엔 숫자만 맞춤(t3 이전 세대) → 원인 확인 후 c8i-flex로 교체</text>
   <rect x="930" y="626" width="510" height="36" rx="8" fill="#fef8e7" stroke="#e6c86e"/>
-  <text x="1185" y="649" text-anchor="middle" font-size="13" font-weight="700" fill="#8a6d00">② Pending 최대 12 · 실패율 0.32%  →  ③ 9대 · 포화 노드 없음</text>
+  <text x="1185" y="649" text-anchor="middle" font-size="13" font-weight="700" fill="#8a6d00">실행 ② (t3): Pending 최대 12 · 실패율 0.32% (온프레 0.09%)</text>
 
   <!-- ═══ 데이터 (온프레) ═══ -->
   <rect x="60" y="708" width="300" height="80" rx="10" fill="#ffffff" stroke="#8ab4d8"/>

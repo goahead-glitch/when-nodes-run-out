@@ -8,7 +8,8 @@
 |---|---|
 | 프로젝트가 뭔지 3분 안에 알고 싶다 | [루트 README](../README.md) |
 | 팀이 몇 명이고 누가 뭘 했는지 | [project-roles.md](project-roles.md) |
-| 실험을 어떻게 설계했고 결과가 뭔지 (실행 ①~③, 결과 해석) | [experiments.md](experiments.md) |
+| 실험을 어떻게 설계했고 결과가 뭔지 (실행 ①~③) | [experiments.md](experiments.md) |
+| 프로젝트가 끝난 뒤 다시 본 것 — 재실험 근거 재확인, 실패 원인 6가지 | [retrospective.md](retrospective.md) |
 | 온프레미스와 EKS를 어떻게 "공정하게" 비교했는지 (통제변수) | [homogenization.md](homogenization.md) |
 | 트래픽이 어떤 경로로 흐르고 포트는 어떻게 쓰는지 | [architecture.md](architecture.md) |
 | 장애를 어떻게 진단하고 해결했는지 (깊은 회고) | [incidents/](incidents/) ↓ |
