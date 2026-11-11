@@ -116,7 +116,7 @@ Pending 0          파드 증설 시작       워커 CPU 80~90%       Pending �
 | 2 | **앱 이미지가 달랐다** (온프레 `:latest` vs EKS `:otel`) | 프로젝트 종료 후 복기 | 양쪽 배포 매니페스트 | ❓ 영향 크기는 검증 못 함 |
 | 3 | 노드 증설이 부하 상승보다 느렸다 | 결과 분석 | 비교 캡처 | 캡처로 확인 |
 | 4 | EKS가 파드를 훨씬 많이 띄웠다 | 결과 분석 | 200 VU 캡처 | 캡처로 확인 (2번과 연결될 수 있음) |
-| 5 | 노드마다 도는 데몬셋 구성이 달랐다 | 결과 분석 → 복기에서 코드로 대조 | 양쪽 매니페스트 · Terraform | 구성 차이는 코드로 확인, 영향 크기는 미측정 |
+| 5 | 노드마다 도는 데몬셋 구성이 달랐다 (+ gateway 메모리 request 차이) | 결과 분석 → 복기에서 코드로 대조 | 양쪽 매니페스트 · Terraform · 차트 기본값 | 구성 차이는 코드로 확인, 영향 크기는 미측정 |
 
 **1. 노드 장비가 달랐다 — 가장 큰 원인.** 노드 1대 = 2vCPU/4GB로 숫자는 맞췄지만, 실행 ② 당시 EKS 워커는 **t3.medium**(이전 세대, 버스터블 — CPU 크레딧을 다 쓰면 성능이 제한됨)이었고 온프레 VM은 **c8i-flex**(Intel Xeon 6, 상시 성능) 호스트 위에서 돌았습니다. 부하가 계속 걸리는 실험에서 버스터블 인스턴스는 불리할 수밖에 없습니다. vCPU·메모리 숫자만 같으면 같은 조건이라고 생각했고, 인스턴스 세대와 CPU 방식을 통제 변수로 보지 못했습니다.
 
@@ -126,17 +126,32 @@ Pending 0          파드 증설 시작       워커 CPU 80~90%       Pending �
 
 **4. EKS가 파드를 훨씬 많이 띄웠다.** 같은 HPA 설정(min 2 / max 99)에서 EKS는 파드가 62개까지 늘었고, 새로 생긴 파드는 노드가 붙을 때까지 Pending으로 기다려야 했습니다. 200 VU 단계에서 EKS가 온프레보다 **먼저** Pending을 띄운 것도 이 때문입니다. ([200 VU 캡처](images/stage-200vu-strain.png))
 
-**5. 노드마다 도는 데몬셋 구성이 달랐다.** 서비스 파드의 리소스는 맞췄지만, 노드마다 하나씩 뜨는 파드는 양쪽 코드에서 이렇게 달랐습니다.
+**5. 노드마다 도는 데몬셋 구성이 달랐다.** 서비스 파드의 리소스는 맞췄지만, 노드마다 하나씩 뜨는 파드는 양쪽 코드에서 이렇게 달랐습니다. 값이 코드에 없으면 기본값을 적었습니다.
 
 | 노드마다 뜨는 것 | 온프레 워커 (`onprem/k8s/onprem/`) | EKS 워커 (`team/infra/`) |
 |---|---|---|
-| CNI | flannel 파드 | aws-node(VPC CNI) 파드 |
-| kube-proxy | 파드 | 파드(EKS 애드온) |
-| node_exporter | **VM에 systemd로 설치 — 파드가 아님** | **DaemonSet 파드**(kube-prometheus-stack) |
-| cAdvisor | DaemonSet, request 50m / 100Mi | 같은 값 |
-| Promtail | DaemonSet, request **30m / 64Mi** 지정 | Helm 차트 기본값 — **리소스 지정 없음** |
+| CNI | flannel 파드 — 공식 매니페스트 기본 request **100m / 50Mi** | aws-node(VPC CNI) — 차트 기본 request **25m** (메모리 지정 없음) |
+| kube-proxy | 파드 — kubeadm 기본, 리소스 지정 없음 | 파드 — EKS 애드온 기본값, 레포·공개 차트로는 확인 불가 |
+| node_exporter | **VM에 systemd로 설치 — 파드가 아님** | **DaemonSet 파드** — 차트 기본값 리소스 지정 없음 |
+| cAdvisor | DaemonSet, request 50m / 100Mi · limit 150m / 200Mi | 같은 값 |
+| Promtail | DaemonSet, request **30m / 64Mi** · limit 100m / 128Mi | Helm 차트 기본값 — **리소스 지정 없음** |
 
-같은 이름의 에이전트라도 설치 방식과 리소스 지정이 달라서, 2vCPU짜리 작은 노드에서 앱 파드가 쓸 수 있는 자리가 양쪽에서 같았다고 보기 어렵습니다. 특히 EKS는 새 노드가 붙을 때마다 이 파드들이 먼저 떠야 해서 증설된 노드가 앱 파드를 받기까지 시간이 더 걸립니다. 다만 CNI·kube-proxy의 실제 request 값과 실험 중 실사용량은 레포에 기록이 없어, 이 차이가 결과에 준 영향의 크기는 측정하지 못했습니다.
+> "리소스 지정 없음"은 스케줄러가 자리를 0으로 계산한다는 뜻입니다. 그만큼 앱 파드가 노드에 더 들어가지만, 실제로는 이 파드들도 CPU를 쓰기 때문에 바쁠 때 같은 노드의 앱 파드와 CPU를 나눠 쓰게 됩니다. 반대로 온프레는 flannel이 100m을 미리 잡아 둡니다. 즉 양쪽의 "앱 파드가 쓸 수 있는 자리"가 서로 다른 방식으로 어긋나 있었습니다.
+
+이 밖에 EKS의 kube-prometheus-stack은 Prometheus Operator를 기본으로 함께 띄우는데(차트 기본 `prometheusOperator.enabled: true`), `values.yaml`에서 끄거나 ops 노드로 보내지 않아 실험 노드에 올라갔을 수 있습니다. 새 노드가 붙을 때마다 데몬셋 파드가 먼저 떠야 해서 증설된 노드가 앱 파드를 받기까지 시간이 더 걸리는 점도 EKS에만 해당합니다. 실험 중 실사용량은 기록이 없어 영향 크기는 측정하지 못했습니다.
+
+> 기본값 출처: flannel `kube-flannel.yml`, aws-vpc-cni · promtail · prometheus-node-exporter · kube-prometheus-stack 차트의 `values.yaml`(2026-11 기준 공개 차트). Terraform에서 promtail · kube-prometheus-stack 차트 버전을 고정하지 않아, 당시 버전의 기본값과 다를 수 있습니다.
+
+**참고 — 앱 파드 리소스 값 대조.** 서비스 파드는 거의 같았지만 두 군데가 달랐습니다.
+
+| 서비스 | 온프레 (`onprem/k8s/common/`) | EKS (`team/eks-service/`) |
+|---|---|---|
+| gateway | request 100m / **128Mi** · limit 500m / 512Mi | request 100m / **256Mi** · limit 500m / 512Mi |
+| product · inventory · order · payment · user | request 100m / 128Mi · limit 500m / 512Mi | 같은 값 |
+| frontend | request 50m / 64Mi · limit **200m / 128Mi** | request 50m / 64Mi · limit **50m / 64Mi** |
+| HPA | target 70% · min 2 · max 99 · scaleUp 60초당 2개 · scaleDown 15초당 50% | 같은 값 |
+
+gateway는 가장 많이 늘어나는 서비스라, 메모리 request가 두 배면 2vCPU/4GB 노드 하나에 들어가는 gateway 파드 수가 줄어 Pending이 더 빨리 생길 수 있습니다(CPU 기준 약 19개, 메모리 256Mi 기준 약 13개). 다만 실험 중 이 제한에 실제로 걸렸는지는 기록이 없습니다.
 
 **영향이 작았을 것으로 보는 차이**
 - 데이터 계층: 온프레는 EC2(t3.medium) 위 PostgreSQL, EKS는 RDS(db.t3.medium) — 엔진·버전·사양 등급이 같음
@@ -149,6 +164,7 @@ Pending 0          파드 증설 시작       워커 CPU 80~90%       Pending �
 | 노드 인스턴스 타입 · 세대 | t3.medium vs c8i-flex | `kubectl get nodes -L node.kubernetes.io/instance-type` |
 | 배포된 이미지 (태그 · 다이제스트) | `:latest` vs `:otel` | `kubectl get pods -n shoply -o jsonpath='{..imageID}'` 를 양쪽에서 비교 |
 | 노드당 데몬셋 리소스 | 양쪽 구성이 다름 | `kubectl describe node`의 Allocated resources 비교 |
+| 앱 파드 request · limit | gateway 메모리 128Mi vs 256Mi | 양쪽 `kubectl get deploy -o yaml`의 resources 비교 |
 | 증설 속도 vs 부하 상승 속도 | 램프가 증설보다 빠름 | 시작 노드 수 · 램프 간격을 증설 시간에 맞춰 설계 |
 
 ### 배운 것

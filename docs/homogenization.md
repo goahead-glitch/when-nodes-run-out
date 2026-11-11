@@ -17,7 +17,7 @@
 | 앱 이미지 | 같은 앱 코드. **단, 실제 배포 태그가 달랐음** — 온프레 `:latest`, EKS `:otel`(트레이싱 계측 포함). 프로젝트 종료 후 복기에서 발견([experiments.md 복기](experiments.md)) |
 | 네임스페이스 | `shoply` (양쪽 동일) |
 | **HPA 설정값** | **target CPU 70%, minReplicas 2, maxReplicas 99**(5개 서비스: gateway/product/inventory/order/payment) — 비교 실험 기준값, 양쪽 동일 |
-| resource requests/limits | request 100m / limit 500m(frontend 50m/200m), 서비스별 동일값 |
+| resource requests/limits | request 100m / limit 500m(frontend 50m/200m). **단, EKS는 gateway 메모리 request 256Mi(온프레 128Mi), frontend limit 50m/64Mi(온프레 200m/128Mi)로 달랐음** — 복기에서 발견([experiments.md 복기](experiments.md)) |
 | K8s 마이너 버전 | 1.34 |
 | 진입 컨트롤러 | ingress-nginx(양쪽 동일 컨트롤러·라우팅). 앞단 LB는 환경별로 다름(온프레 MetalLB · EKS NLB) — L7 기능이 있는 ALB는 쓰지 않음 |
 | 모니터링 컴포넌트 | node_exporter · kube-state-metrics · cAdvisor · promtail(양쪽 동일 배포) |
