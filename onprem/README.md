@@ -92,7 +92,7 @@ AWS EC2 위에 **KVM 가상머신**으로 물리 온프레미스 k8s를 재현�
 ![부하 시 파드 목록](images/pods-under-load.png)
 > 실제로 gateway/product 파드 수가 늘어나는 모습(생성된 지 몇 분 안 된 파드들이 다수 보임) — HPA가 의도대로 작동함을 확인.
 
-**EKS와의 직접 비교**: Grafana에 온프레·EKS 양쪽 Prometheus를 동시에 붙인 반반 비교 대시보드로 같은 부하(최대 300 VU)를 걸어봤습니다. 온프레는 노드 4개 고정 상태라 Pending이 6\~7개까지 쌓여 수 분간 유지된 반면, EKS는 Karpenter가 노드를 3→8개로 늘렸음에도 Pending이 최대 12개까지 두 차례 스파이크친 뒤에야 해소됐습니다 — 노드가 3개에서 8개가 되기까지 약 6분 동안 계단식으로 늘었고, 자동확장이 있어도 새 노드가 준비되기 전까지는 Pending이 쌓인다는 걸 눈으로 확인한 셈입니다. 원인은 EKS 실험 노드가 버스터블 t3.medium이었던 장비 차이였고, c8i-flex.large로 바꾼 재실험에서는 EKS가 노드 9대로 늘며 포화 없이 버텼습니다. 자세한 수치·부하 테스트 영상은 [`../docs/experiments.md`](../docs/experiments.md) 참고.
+**EKS와의 직접 비교**: Grafana에 온프레·EKS 양쪽 Prometheus를 동시에 붙인 반반 비교 대시보드로 같은 부하(최대 300 VU)를 걸어봤습니다. 온프레는 노드 4개 고정 상태라 Pending이 6\~7개까지 쌓여 수 분간 유지된 반면, EKS는 Karpenter가 노드를 3→8개로 늘렸음에도 Pending이 최대 12개까지 두 차례 스파이크친 뒤에야 해소됐습니다 — 노드가 3개에서 8개가 되기까지 약 6분 동안 계단식으로 늘었고, 자동확장이 있어도 새 노드가 준비되기 전까지는 Pending이 쌓인다는 걸 눈으로 확인한 셈입니다. 원인은 EKS 실험 노드가 이전 세대 t3.medium이었던 장비 차이였고, c8i-flex.large로 바꾼 재실험에서는 EKS가 노드 9대로 늘며 포화 없이 버텼습니다. 자세한 수치·부하 테스트 영상은 [`../docs/experiments.md`](../docs/experiments.md) 참고.
 
 ![온프레미스 vs EKS 비교 — 부하 유지 구간](../docs/images/onprem-eks-comparison-spike.png)
 
