@@ -73,7 +73,7 @@ docker compose ps
 | `grafana-dashboard-load.json` | 부하 테스트(k6) 비교 — VU·RPS·실패율을 온프레/EKS 좌우로 |
 | `grafana-dashboard-recommend.json` | 온프레/EKS 토글 — 데이터소스 변수(`$ds`)로 한 화면에서 전환 |
 
-![온프레 vs EKS 비교 대시보드](../docs/images/onprem-eks-comparison-spike.png)
+![온프레 vs EKS 비교 대시보드](../docs/images/run2-compare-300vu-hold.png)
 > `grafana-dashboard-compare.json`으로 300 VU 부하 중 캡처 — 왼쪽 온프레는 Pending이 쌓인 채 유지, 오른쪽 EKS는 노드가 늘어나지만 Pending도 함께 스파이크쳤다가 뒤늦게 해소됨.
 
 ## 트러블슈팅에서 배운 것

@@ -50,7 +50,7 @@ Pending 0          파드 증설 시작       워커 CPU 80~90%       Pending �
 3. **자원 포화**: 워커 노드 CPU가 80\~90%까지 상승, Running 파드는 33개까지 증가.
 4. **한계 도달**: 노드는 4개로 고정된 채 더 이상 파드를 받을 곳이 없어 **Pending 파드가 0→7개까지 적체**, P95 레이턴시 **6.54초**, k6 실패율 **최대 6%**. 이 지점이 "고정 자원의 한계"입니다.
 
-![온프레미스 한계 도달 — Pending 파드 발생](images/limit-found-pending-pods.png)
+![온프레미스 한계 도달 — Pending 파드 발생](images/run1-onprem-limit-pending.png)
 
 별도의 1800 VU 실행에서는 결제 단계부터 실패율이 급증하는 패턴(p95 5.73초, `p(95)<3000` 임계값 초과로 테스트 실패 종료)도 확인했습니다 — 한계에 도달하면 쇼핑 플로우의 마지막 단계(결제)부터 무너집니다([`../k6/README.md`](../k6/README.md)).
 
@@ -60,21 +60,21 @@ Pending 0          파드 증설 시작       워커 CPU 80~90%       Pending �
 
 **1단계 — 100 VU: 양쪽 다 안정.** 온프레 4노드/EKS 3노드 모두 Pending 0, 실패율 ~0%. 온프레 워커 CPU는 30% 안팎 — 평상시 수준의 트래픽에서는 고정 자원도 전혀 문제가 없습니다.
 
-![100 VU — 양쪽 안정](images/stage-100vu-stable.png)
+![100 VU — 양쪽 안정](images/run2-stage-100vu.png)
 
 **2단계 — 200 VU: 균열이 시작됨.** 온프레는 HPA가 파드를 33개까지 늘리며 아직 Pending 0으로 버티지만 워커 CPU가 70%에 근접 — 여유가 소진되어 갑니다. **EKS 쪽이 먼저 Pending을 띄웠습니다**: 파드 증설을 노드가 못 따라가 Pending이 5→12까지 치솟았고, Karpenter가 노드를 4→5개로 늘리기 시작합니다.
 
-![200 VU — 온프레 CPU 포화 접근, EKS Pending 스파이크·노드 증설 시작](images/stage-200vu-strain.png)
+![200 VU — 온프레 CPU 포화 접근, EKS Pending 스파이크·노드 증설 시작](images/run2-stage-200vu.png)
 
 **3단계 — 300 VU: 운명이 갈림.** 온프레는 노드 4개 고정인 채 **Pending 7개가 쌓여 내려가지 않고**(워커 CPU 79\~85%), 이후 수 분간 그대로 유지됐습니다 — 사람이 노드를 늘리기 전까지 스스로 회복할 방법이 없습니다. EKS는 노드가 6개까지 늘며 Running 43개를 받아냈고, Pending이 10→8로 **해소되는 방향**으로 움직였습니다.
 
-![300 VU — 온프레 Pending 적체 vs EKS 노드 증설로 해소 중](images/stage-300vu-limit.png)
+![300 VU — 온프레 Pending 적체 vs EKS 노드 증설로 해소 중](images/run2-stage-300vu.png)
 
-**정리하면**: 온프레는 "한계까지는 잘 버티다가 한계를 넘는 순간 스스로 회복하지 못하는" 패턴, EKS는 "Pending이 먼저 튀지만 새 노드가 붙으면 회복하는" 패턴입니다(노드 3→8개, 약 6분에 걸쳐 단계적으로 증가). 자동확장이 있어도 프로비저닝이 끝날 때까지는 EKS도 Pending이 쌓인다는 것 — 실패율도 온프레 0.07\~0.09% vs EKS 0.32\~0.50%로 **EKS가 오히려 높았다**는 것이 이 실험의 반전 포인트입니다(300 VU 구간 Grafana 실시간 값 0.07%/0.50% — [캡처](images/stage-300vu-limit.png), 테스트 종료 후 k6 전체 집계 0.09%/0.32% — [`../k6/README.md`](../k6/README.md)).
+**정리하면**: 온프레는 "한계까지는 잘 버티다가 한계를 넘는 순간 스스로 회복하지 못하는" 패턴, EKS는 "Pending이 먼저 튀지만 새 노드가 붙으면 회복하는" 패턴입니다(노드 3→8개, 약 6분에 걸쳐 단계적으로 증가). 자동확장이 있어도 프로비저닝이 끝날 때까지는 EKS도 Pending이 쌓인다는 것 — 실패율도 온프레 0.07\~0.09% vs EKS 0.32\~0.50%로 **EKS가 오히려 높았다**는 것이 이 실험의 반전 포인트입니다(300 VU 구간 Grafana 실시간 값 0.07%/0.50% — [캡처](images/run2-stage-300vu.png), 테스트 종료 후 k6 전체 집계 0.09%/0.32% — [`../k6/README.md`](../k6/README.md)).
 
-![온프레미스 vs EKS 비교 — 부하 유지 구간](images/onprem-eks-comparison-spike.png)
+![온프레미스 vs EKS 비교 — 부하 유지 구간](images/run2-compare-300vu-hold.png)
 
-300 VU 전 과정(k6 패널 + 인프라 메트릭 패널)은 68초 영상으로 남겼습니다: [`videos/onprem-vs-eks-300vu-load-test.mp4`](videos/onprem-vs-eks-300vu-load-test.mp4)
+300 VU 전 과정(k6 패널 + 인프라 메트릭 패널)은 68초 영상으로 남겼습니다: [`videos/run2-compare-300vu.mp4`](videos/run2-compare-300vu.mp4)
 
 ## 실행 ③ — 장비를 맞춰 재실험 (최종 발표)
 
@@ -117,17 +117,17 @@ Pending 0          파드 증설 시작       워커 CPU 80~90%       Pending �
 | 3 | 노드 증설이 부하 상승보다 느렸다 | 결과 분석 | 비교 캡처 | 캡처로 확인 |
 | 4 | EKS가 파드를 훨씬 많이 띄웠다 | 결과 분석 | 200 VU 캡처 | 캡처로 확인 (2번과 연결될 수 있음) |
 | 5 | 노드마다 도는 데몬셋 구성이 달랐다 (+ gateway 메모리 request 차이) | 결과 분석 → 복기에서 코드로 대조 | 양쪽 매니페스트 · Terraform · 차트 기본값 | 구성 차이는 코드로 확인, 영향 크기는 미측정 |
-| 6 | **리소스 request를 실제 사용량에 맞추지 못해 노드 자원을 버렸다** — 초반 몰림에서 EKS가 먼저 Pending | 프로젝트 종료 후 복기 | 300 VU 캡처 (EKS 노드 CPU 62~70%인데 Pending 8~10) | 캡처로 확인 |
+| 6 | **리소스 request를 실제 사용량에 맞추지 못해 노드 자원을 버렸다** — 초반 몰림에서 EKS가 먼저 Pending | 프로젝트 종료 후 복기 | 전체 타임라인 캡처 (EKS는 노드 CPU 약 30%에서 Pending 시작, 온프레는 약 80%에서) | 캡처로 확인 |
 
-**1. 노드 장비가 달랐다 — 가장 큰 원인.** 노드 1대 = 2vCPU/4GB로 숫자는 맞췄지만, 실행 ② 당시 EKS 워커는 **t3.medium**(Skylake/Cascade Lake 세대)이었고 온프레 VM은 **c8i-flex**(Intel Xeon 6) 호스트 위에서 돌았습니다. 같은 2vCPU라도 세대가 3세대가량 차이 나서 vCPU 하나가 같은 시간에 처리하는 양이 다릅니다. vCPU·메모리 숫자만 같으면 같은 조건이라고 생각했고, 인스턴스 세대를 통제 변수로 보지 못했습니다.
+**1. 노드 장비가 달랐다 — 가장 큰 원인.** 노드 1대 = 2vCPU/4GB로 숫자는 맞췄지만, 실행 ② 당시 EKS 워커는 **t3.medium**(Skylake/Cascade Lake 세대)이었고 온프레 VM은 **c8i-flex**(Intel Xeon 6) 호스트 위에서 돌았습니다. 같은 2vCPU라도 세대가 3세대가량 차이 나서 vCPU 하나가 같은 시간에 처리하는 양이 다릅니다. vCPU·메모리 숫자만 같으면 같은 조건이라고 생각했고, 인스턴스 세대를 통제 변수로 보지 못했습니다. 당시 EKS launch template에 t3.medium이 들어가 있던 캡처: [`run2-eks-launch-template-t3medium.png`](images/run2-eks-launch-template-t3medium.png)
 
 > **CPU 크레딧 제한은 원인이 아니었을 가능성이 큽니다.** t3는 버스터블 인스턴스라 standard 모드에서는 CPU 크레딧을 다 쓰면 기준선(t3.medium은 vCPU당 20%)까지 성능이 깎입니다. 하지만 T3는 따로 지정하지 않으면 **unlimited 모드**로 뜨고, 이 모드에서는 성능이 깎이지 않고 초과 사용분만 요금으로 청구됩니다([AWS T3 안내](https://aws.amazon.com/ec2/instance-types/t3/)). 팀원 Terraform의 launch template에 크레딧 설정이 없으므로, 계정 기본값을 바꾸지 않았다면 unlimited였을 것입니다. 당시 노드의 CloudWatch `CPUSurplusCreditsCharged`(초과 크레딧 청구) 또는 `CPUCreditBalance` 지표로 확인할 수 있습니다.
 
 **2. 앱 이미지가 달랐다 — 복기하면서 새로 찾음.** 온프레 매니페스트(`onprem/k8s/common/`)는 `ghcr.io/ktk026/shoply-*:latest`를, EKS 매니페스트(`team/eks-service/`)는 `ghcr.io/incheon-soda/shoply-*:otel`을 가리키고 있었습니다. `:otel`은 Tempo 트레이싱을 시험해 보려고 OpenTelemetry 계측(`tracing.js`)을 넣어 따로 빌드한 이미지입니다([`cd-otel.yml`](../.github/workflows/cd-otel.yml)). 앱 로직은 같지만 계측이 요청마다 기록을 만들면서 CPU를 더 쓸 수 있고, HPA가 CPU 70% 기준이라 EKS 파드가 더 빨리, 더 많이 늘어나는 쪽으로 작용했을 수 있습니다(4번과 같은 방향). 다만 실험 당일 실제로 떠 있던 이미지와 계측의 CPU 비용은 기록이 없어 영향 크기는 확인하지 못했습니다.
 
-**3. 노드 증설이 부하 상승보다 느렸다.** 부하는 2분마다 100 VU씩 올라 약 4분 만에 300 VU에 도달했지만, EKS 노드는 3개에서 8개가 되기까지 약 6분이 걸렸습니다. 노드가 8개가 된 건 최고 부하 구간이 끝나갈 무렵이었고, 그 사이 늘어난 파드는 Pending으로 쌓여 요청 실패로 이어졌습니다. ([비교 캡처](images/onprem-eks-comparison-spike.png))
+**3. 노드 증설이 부하 상승보다 느렸다.** 부하는 2분마다 100 VU씩 올라 약 4분 만에 300 VU에 도달했지만, EKS 노드는 3개에서 8개가 되기까지 약 6분이 걸렸습니다. 노드가 8개가 된 건 최고 부하 구간이 끝나갈 무렵이었고, 그 사이 늘어난 파드는 Pending으로 쌓여 요청 실패로 이어졌습니다. ([비교 캡처](images/run2-compare-300vu-hold.png))
 
-**4. EKS가 파드를 훨씬 많이 띄웠다.** 같은 HPA 설정(min 2 / max 99)에서 EKS는 파드가 62개까지 늘었고, 새로 생긴 파드는 노드가 붙을 때까지 Pending으로 기다려야 했습니다. 200 VU 단계에서 EKS가 온프레보다 **먼저** Pending을 띄운 것도 이 때문입니다. ([200 VU 캡처](images/stage-200vu-strain.png))
+**4. EKS가 파드를 훨씬 많이 띄웠다.** 같은 HPA 설정(min 2 / max 99)에서 EKS는 파드가 62개까지 늘었고, 새로 생긴 파드는 노드가 붙을 때까지 Pending으로 기다려야 했습니다. 200 VU 단계에서 EKS가 온프레보다 **먼저** Pending을 띄운 것도 이 때문입니다. ([200 VU 캡처](images/run2-stage-200vu.png))
 
 **5. 노드마다 도는 데몬셋 구성이 달랐다.** 서비스 파드의 리소스는 맞췄지만, 노드마다 하나씩 뜨는 파드는 양쪽 코드에서 이렇게 달랐습니다. 값이 코드에 없으면 기본값을 적었습니다.
 
@@ -158,7 +158,14 @@ gateway는 가장 많이 늘어나는 서비스라, 메모리 request가 두 배
 
 **6. 리소스를 너무 버렸다 — 초반 몰림에서 EKS가 먼저 무너진 이유.** 이 실험의 기준은 쇼핑몰이고, 할인·선착순 이벤트라면 트래픽은 **초반에 한꺼번에** 몰립니다. 그런데 실행 ②·③ 모두 EKS는 후반엔 노드가 늘어 안정됐지만, **초반에는 온프레보다 먼저 Pending**이 났습니다.
 
-300 VU 캡처([`stage-300vu-limit.png`](images/stage-300vu-limit.png))의 EKS 쪽을 보면 **Pending이 8~10개인데 노드 CPU는 62~70%**였습니다. CPU가 30~40% 남아 있는데도 파드를 더 올리지 못한 것입니다.
+실행 ② 전체 타임라인 캡처([`run2-compare-full-timeline.png`](images/run2-compare-full-timeline.png))를 보면 차이가 분명합니다.
+
+| | Pending이 처음 생긴 시점 | 그때 노드 CPU |
+|---|---|---|
+| 온프레 | 약 19:40 (부하 시작 후 약 5분) | 워커 약 80% — 실제로 꽉 찬 뒤 |
+| EKS | 약 19:36:40 (부하 시작 후 약 1분 반) | **약 25~35%** — 실제로는 한참 남은 상태 |
+
+EKS는 실제 CPU가 30% 안팎일 때부터 Pending이 났고, 300 VU 구간([`run2-stage-300vu.png`](images/run2-stage-300vu.png))에서도 **노드 CPU 62~70%인데 Pending 8~10개**였습니다. CPU가 남아 있는데도 파드를 더 올리지 못한 것입니다. (EKS 노드별 CPU 패널은 일부 노드만 표시돼 있어, 표의 CPU는 패널에 보이는 노드 기준입니다.)
 
 ```
 HPA 목표 70%   → 파드는 평균적으로 request의 약 70%만 실제로 씀

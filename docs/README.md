@@ -26,4 +26,4 @@
 ## 미디어
 
 - `images/` — 실험·구축 스크린샷, 아키텍처 다이어그램(구성도 원본 `onprem-architecture.drawio` · `eks-architecture.drawio` 포함)
-- `videos/` — [온프레 vs EKS 300VU 부하 테스트 실황](videos/onprem-vs-eks-300vu-load-test.mp4) (68초)
+- `videos/` — [온프레 vs EKS 300VU 부하 테스트 실황](videos/run2-compare-300vu.mp4) (68초)

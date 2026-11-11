@@ -47,7 +47,7 @@ NLB → Nginx Ingress(ops 노드) → api · service 노드그룹, Karpenter 노
 
 노드 4개 고정 상태에서 동시접속을 계단식으로 올리자(최대 2000 VU 설계, 실제 도달 약 1,800 VU) Running 파드가 33개까지 늘어난 뒤 **Pending 0→7개, P95 6.54초, 실패율 최대 6%** 로 무너지는 지점을 포착했습니다.
 
-![온프레미스 한계 도달 — Pending 파드 발생](docs/images/limit-found-pending-pods.png)
+![온프레미스 한계 도달 — Pending 파드 발생](docs/images/run1-onprem-limit-pending.png)
 
 ### 실행 ② 온프레미스 vs EKS — 기대와 다른 결과
 
@@ -62,9 +62,9 @@ NLB → Nginx Ingress(ops 노드) → api · service 노드그룹, Karpenter 노
 
 EKS는 노드를 늘려 더 많은 파드를 받아냈지만, 노드가 붙기 전까지 Pending이 쌓였고 실패율은 오히려 온프레보다 높았습니다. "탄력 자원은 흔들림 없이 버틴다"는 기대와 달랐습니다.
 
-![온프레미스 vs EKS 비교 — 부하 유지 구간](docs/images/onprem-eks-comparison-spike.png)
+![온프레미스 vs EKS 비교 — 부하 유지 구간](docs/images/run2-compare-300vu-hold.png)
 
-→ 300 VU 전 과정 [68초 실황 영상](docs/videos/onprem-vs-eks-300vu-load-test.mp4)
+→ 300 VU 전 과정 [68초 실황 영상](docs/videos/run2-compare-300vu.mp4)
 
 ### 원인 — 숫자만 같고 장비가 달랐다
 

@@ -22,15 +22,15 @@ setup() - 테스트 시작 전 1회만 로그인 (test1@shoply.com) → JWT 토�
 
 ## 실행 결과 예시 (scenario.js, 1800 VUs)
 
-![k6 실행 결과](images/k6-run-result.png)
+![k6 실행 결과](images/run1-k6-1800vu.png)
 > 55만여 건 요청, 결제 실패율 93%(재고 소진이 아니라 응답 타임아웃 기준 — p95 레이턴시 5.73초까지 치솟은 상태) — `http_req_duration p(95)<3000` 임계값을 초과해 테스트가 실패로 종료된 사례. 노드 자원이 한계에 도달했을 때 결제 단계부터 무너지는 걸 확인했습니다.
 
 ## 실행 결과 예시 (scenario-wave.js, 300 VUs — 온프레 vs EKS)
 
 동일한 웨이브 부하(최대 300 VU)를 온프레·EKS 양쪽에 각각 걸어 k6 자체 결과를 비교했습니다. 온프레는 checks_failed 0.09%(65,849 iterations), EKS는 0.32%(66,876 iterations)로 EKS 쪽 실패율이 오히려 더 높게 나온 구간도 있었습니다 — Karpenter가 새 노드를 붙이는 동안에는 EKS도 순간적으로 여유가 없었기 때문입니다(Pending 추이는 [`../docs/experiments.md`](../docs/experiments.md) 참고).
 
-![k6 실행 결과 — 온프레](images/scenario-wave-300vu-onprem.png)
-![k6 실행 결과 — EKS](images/scenario-wave-300vu-eks.png)
+![k6 실행 결과 — 온프레](images/run2-k6-result-onprem.png)
+![k6 실행 결과 — EKS](images/run2-k6-result-eks.png)
 
 ## 테스트 전 재고 리셋
 
