@@ -86,7 +86,7 @@ kubectl apply -f k8s/onprem/promtail-loki.yaml
 kubectl apply -f k8s/onprem/event-exporter-loki.yaml
 ```
 
-> EKS 배포 순서는 팀원 담당 영역으로 [`team/eks-service/README.md`](../../team/eks-service/README.md)에 있습니다. 앱 이미지와 HPA·리소스 기준값은 온프레미스와 동일하게 맞췄습니다([동일화 문서](../../docs/homogenization.md)).
+> EKS 배포 순서는 팀원 담당 영역으로 [`team/eks-service/README.md`](../../team/eks-service/README.md)에 있습니다. HPA·리소스 기준값은 온프레미스 값을 기준으로 했습니다([동일화 문서](../../docs/homogenization.md)).
 
 ---
 

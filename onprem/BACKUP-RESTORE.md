@@ -1,4 +1,8 @@
-# AMI 백업 / 복원 — 스팟 호스트 EC2 빠른 복구
+# 백업 / 복원 — 스팟 호스트 EC2 빠른 복구
+
+두 가지 방법을 모두 써 봤습니다. **AMI 백업**(AWS에 보관, 월 비용 발생, 복원이 가장 빠름)과 **qcow2 수동 백업**(PC에 보관, 무료, 새 EC2에 KVM을 다시 깔아야 함 — [`restore-cluster.sh`](scripts/restore-cluster.sh)로 자동화)입니다. qcow2 방식은 [아래 섹션](#qcow2-수동-백업--pc-보관-무료)에 있습니다.
+
+## AMI 백업
 
 호스트 EC2(KVM을 돌리는 그 머신)를 AMI로 통째 백업해두고, 스팟이 회수(terminate)되거나 새로 띄울 때 그 AMI로 몇 분 만에 복구합니다. AMI에는 KVM VM 디스크(qcow2)까지 들어있어 클러스터가 그대로 부활합니다.
 
@@ -145,6 +149,114 @@ sudo virsh autostart k8s-master k8s-worker1 k8s-worker2 k8s-worker3
 
 **③ 이 상태로 AMI 다시 굽기.** 다음부터는: AMI로 시작 → EIP 재연결 → (자동) VM 부팅·모듈로드·DNAT → DB/Redis IP만 바뀌었으면 6단계 패치만 하면 끝입니다.
 
+## qcow2 수동 백업 — PC 보관 (무료)
+
+> 셋팅을 다 끝낸 클러스터를 **qcow2 통째로 백업 → PC 보관 → 새 EC2에 풀어서 부활**시킵니다.
+> 재구축 때마다 겪던 고생(br_netfilter · flannel · metrics-server · configmap IP …)을 건너뛰고, "서버 다운 → 재구축 1~2시간"을 "복원 몇 분"으로 줄입니다.
+
+### 원리
+
+VM = `/var/lib/libvirt/images/*.qcow2`(디스크) + libvirt XML(정의). **이 둘만 있으면** 어느 KVM 호스트에서든 되살릴 수 있습니다.
+
+```
+[정상 클러스터] → 정지 → qcow2+XML 백업 → tar → PC 보관
+                                              ↓ (나중에)
+[새 EC2] ← virsh define+start ← qcow2+XML ← 업로드 ← PC
+```
+
+### 백업 전 필수 — VM IP 고정
+
+복원 시 VM이 **새 IP**를 받으면 인증서 · kubeconfig · etcd가 옛 IP를 가리켜 **클러스터가 깨집니다.** 백업 전에 IP를 고정합니다.
+
+```bash
+# 호스트 EC2 — 각 VM의 MAC 확인
+for vm in k8s-master k8s-worker1 k8s-worker2 k8s-worker3; do
+  echo "$vm: $(sudo virsh domiflist $vm | awk 'NR==3{print $5}')"
+done
+
+# DHCP 예약 (MAC → 고정 IP). 현재 IP 그대로 박는 걸 권장
+sudo virsh net-update default add ip-dhcp-host \
+  "<host mac='<master-MAC>' name='k8s-master' ip='192.168.122.51'/>" --live --config
+# worker1·2·3도 각각 (현재 virsh net-dhcp-leases default 의 IP로)
+```
+> XML에 MAC이 보존되므로, 예약만 같이 살리면 복원해도 같은 IP를 받습니다.
+
+### 백업 (호스트 EC2 → PC)
+
+```bash
+# 1. VM 정지 (콜드 백업 — etcd 일관성 위해 필수. 켜진 채 복사 금지)
+for vm in k8s-master k8s-worker1 k8s-worker2 k8s-worker3; do sudo virsh shutdown $vm; done
+sudo virsh list --all        # 전부 shut off 확인 (안 꺼지면 sudo virsh destroy <vm>)
+
+# 2. XML 정의 + 네트워크 백업
+mkdir -p ~/vm-backup
+for vm in k8s-master k8s-worker1 k8s-worker2 k8s-worker3; do
+  sudo virsh dumpxml $vm > ~/vm-backup/$vm.xml
+done
+sudo virsh net-dumpxml default > ~/vm-backup/default-net.xml
+
+# 3. qcow2 압축 복사 (30GB 할당이라도 실제 사용분만 → 용량이 크게 줄어듦)
+for vm in k8s-master k8s-worker1 k8s-worker2 k8s-worker3; do
+  sudo qemu-img convert -O qcow2 -c \
+    /var/lib/libvirt/images/$vm.qcow2 ~/vm-backup/$vm.qcow2
+done
+
+# 4. 한 덩어리로 묶기
+sudo tar czf ~/shoply-cluster.tar.gz -C ~/vm-backup .
+ls -lh ~/shoply-cluster.tar.gz       # 보통 15~40GB
+
+# 5. (백업 후 다시 쓰려면) VM 재시작
+for vm in k8s-master k8s-worker1 k8s-worker2 k8s-worker3; do sudo virsh start $vm; done
+```
+
+PC로 다운로드:
+```bash
+scp -i key.pem ubuntu@<EC2-공인IP>:~/shoply-cluster.tar.gz ~/Downloads/
+```
+
+> 용량을 더 줄이려면 백업 전 VM 안에서 `sudo apt clean && sudo journalctl --vacuum-time=1d && sudo fstrim -av`.
+
+### 복원 (새 EC2) — `restore-cluster.sh`
+
+qcow2 복원의 유일한 번거로움은 "새 EC2에 KVM 또 깔기"입니다. [`scripts/restore-cluster.sh`](scripts/restore-cluster.sh)가 **디스크 확장 + KVM 설치 + DNS + qcow2 배치 + VM 정의/시작 + 호스트 네트워크(DNAT)**를 한 번에 합니다.
+
+```bash
+# 새 EC2(중첩 가상화 켜진 인스턴스 — onprem/README.md "KVM 가상머신 구축" 참고)에서
+scp -i key.pem ~/Downloads/shoply-cluster.tar.gz ubuntu@<새EC2>:~/
+scp -i key.pem scripts/restore-cluster.sh scripts/host-network.sh ubuntu@<새EC2>:~/
+ssh -i key.pem ubuntu@<새EC2>
+chmod +x restore-cluster.sh host-network.sh
+./restore-cluster.sh shoply-cluster.tar.gz
+```
+> cloud-init ISO(cdrom) 참조는 스크립트가 자동 제거(`virt-xml --remove-device --disk device=cdrom`)하므로 ISO는 백업하지 않아도 됩니다.
+
+### 복원 후 체크리스트
+
+| 항목 | 확인/조치 |
+|---|---|
+| VM IP | `virsh net-dhcp-leases default` → 백업 때와 같은 IP인지 (고정했으면 OK) |
+| 클러스터 | master에서 `kubectl get nodes` (4개 Ready), `kubectl get pods -A` |
+| 호스트 IP 갱신 | 새 EC2는 새 사설IP → 모니터링 `prometheus.yml`의 **호스트 IP만** 교체 (VM 내부는 그대로) |
+| DNAT | 새 EC2라 iptables가 비어 있음 → `host-network.sh` (스크립트가 자동 실행) |
+| 외부 서버 | DB · Redis · 모니터링 EC2도 새로 떴으면 IP 갱신 — 위 [6. DB / Redis 사설IP 갱신](#6-db--redis-사설ip-갱신-configmap), [6-1. Loki](#6-1-loki-로그-수집-ip-갱신-promtail--event-exporter) 참고 |
+
+### 흔한 함정
+
+1. **cloud-init ISO 참조 에러** — XML이 `*-cloud-init.iso`(cdrom)를 참조하는데 복원 시 그 파일이 없으면 `virsh start`가 실패합니다. → 스크립트가 cdrom 디바이스를 지우고 시작합니다(cloud-init은 최초 1회로 이미 끝남).
+2. **켜진 채 백업** → etcd가 어중간한 상태로 복사돼 복원 시 깨짐. **반드시 정지 후.**
+3. **IP 안 고정** → 복원 시 IP가 바뀌어 클러스터가 깨짐 (위 "IP 고정" 필수).
+4. **default 네트워크 대역 불일치** — 새 호스트의 libvirt default도 `192.168.122.0/24`여야 함(기본값이라 보통 일치). 다르면 `~/vm-backup/default-net.xml`로 맞춥니다.
+
+### AMI vs qcow2 (비용 포함)
+
+| 방법 | 보관 | 호스트가 죽어도? | 복원 시 KVM 설치 | 비용 |
+|---|---|---|---|---|
+| **qcow2 백업** | 내 PC | ✅ 부활 | 필요 (스크립트로 자동) | **무료** |
+| virsh snapshot | EC2 디스크 | ❌ 같이 사라짐 | — | 무료 |
+| EC2 AMI | AWS | ✅ 부활 | 불필요 (다 들어 있음) | 월 약 $2.5~3.3 (EBS 스냅샷) |
+
+→ 무료로 가려면 qcow2 백업 + `restore-cluster.sh`, 비용을 감수하고 가장 빠른 복원을 원하면 AMI. 둘 다 떠 두면 가장 안전합니다.
+
 ## 트러블슈팅 — "파드는 다 Running인데 사이트가 안 들어감"
 
 파드가 다 Ready인데 사이트가 안 열리면, 클러스터가 아니라 진입 경로(호스트/SG/ingress) 문제입니다. `curl -v http://<EIP>/`로 먼저 분류합니다.
@@ -175,12 +287,15 @@ sudo virsh autostart k8s-master k8s-worker1 k8s-worker2 k8s-worker3
 ## 요약
 
 ```
-[백업]  VM shutdown → sync → AMI 생성(No reboot)
-[복원]  AMI로 스팟 시작 → EIP 재연결 → virsh start+autostart
+[AMI 백업]  VM shutdown → sync → AMI 생성(No reboot)
+[AMI 복원]  AMI로 스팟 시작 → EIP 재연결 → virsh start+autostart
         → ./host-network.sh (DNAT/메트릭, 호스트IP 자동)
         → configmap DB/Redis IP 패치 + rollout restart
         → Promtail/event-exporter push IP 갱신 (Loki 로그용)
         → kubectl get nodes/pods 확인
+
+[qcow2 백업]  VM shutdown → dumpxml + qemu-img convert -c → tar → PC
+[qcow2 복원]  새 EC2 → ./restore-cluster.sh <tar> (KVM 설치~DNAT 자동) → IP 갱신
 ```
 
 클러스터(VM 내부)는 qcow2에 통째로 들어있어 그대로 부활합니다(IP 고정 덕에 안 깨짐). 매번 바뀌는 IP 3종: 호스트 사설IP(`host-network.sh` 자동) + DB/Redis IP(configmap 패치) + 모니터링 IP(Promtail push URL).
