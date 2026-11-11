@@ -21,7 +21,7 @@
   <text x="780" y="196" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">진입</text>
   <text x="780" y="214" text-anchor="middle" font-size="11" fill="#57606a">동일 LB 추상화</text>
   <text x="780" y="352" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">서비스</text>
-  <text x="780" y="370" text-anchor="middle" font-size="11" fill="#57606a">동일 매니페스트</text>
+  <text x="780" y="370" text-anchor="middle" font-size="11" fill="#57606a">같은 앱 코드</text>
   <text x="780" y="562" text-anchor="middle" font-size="14" font-weight="700" fill="#c0392b">컴퓨팅</text>
   <text x="780" y="580" text-anchor="middle" font-size="11" font-weight="700" fill="#c0392b">★ 의도한 변수</text>
   <text x="780" y="742" text-anchor="middle" font-size="14" font-weight="700" fill="#24292f">데이터</text>
@@ -61,7 +61,7 @@
     <rect x="512" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="553" y="329" text-anchor="middle">user</text>
     <rect x="600" y="308" width="82" height="34" rx="6" fill="#eef5fc" stroke="#8ab4d8"/><text x="641" y="329" text-anchor="middle">frontend</text>
   </g>
-  <text x="375" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 동일 이미지(같은 SHA) · 네임스페이스 shoply</text>
+  <text x="375" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 이미지 :latest · 네임스페이스 shoply</text>
   <text x="375" y="396" text-anchor="middle" font-size="12" fill="#57606a">HPA 동일 — target CPU 70% · min 2 / max 99 (5개 서비스)</text>
   <text x="375" y="420" text-anchor="middle" font-size="12" fill="#57606a">재고 SELECT FOR UPDATE(행 잠금) — 초과판매 방지 로직도 동일</text>
 
@@ -77,9 +77,9 @@
     <rect x="1322" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1363" y="329" text-anchor="middle">user</text>
     <rect x="1410" y="308" width="82" height="34" rx="6" fill="#fdf3e7" stroke="#e0b57e"/><text x="1451" y="329" text-anchor="middle">frontend</text>
   </g>
-  <text x="1185" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 동일 이미지(같은 SHA) · 네임스페이스 shoply</text>
+  <text x="1185" y="372" text-anchor="middle" font-size="12" fill="#57606a">MSA 7개 서비스 — 이미지 :otel (트레이싱 계측 포함) · shoply</text>
   <text x="1185" y="396" text-anchor="middle" font-size="12" fill="#57606a">HPA 동일 — target CPU 70% · min 2 / max 99 (5개 서비스)</text>
-  <text x="1185" y="420" text-anchor="middle" font-size="12" fill="#57606a">동일 매니페스트 공유 — 온프레미스가 동일화 기준 제공</text>
+  <text x="1185" y="420" text-anchor="middle" font-size="12" fill="#57606a">⚠ 이미지 태그 차이는 프로젝트 종료 후 복기에서 발견</text>
 
   <!-- ═══ 컴퓨팅 (온프레) ═══ -->
   <rect x="60" y="472" width="630" height="208" rx="10" fill="#ffffff" stroke="#1f5fa8" stroke-width="2"/>
